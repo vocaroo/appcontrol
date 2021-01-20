@@ -7,12 +7,12 @@ const findApps = require("./findApps.js");
 const {findProjectName, makeFullAppName} = require("./utils.js");
 const db = require("./db.js");
 
-function getReleaseFile(releaseNumber) {
-	return constants.RELEASE_DIR + `/release-${releaseNumber}.tar.gz`;
+function getReleaseDir(releaseNumber) {
+	return constants.RELEASE_DIR + `/release-${releaseNumber}`;
 }
 
-function getNextReleaseFile() {
-	return getReleaseFile( db.get("latestReleaseNum").value() + 1);
+function getNextReleaseDir() {
+	return getReleaseDir( db.get("latestReleaseNum").value() + 1);
 }
 
 module.exports = async function() {
@@ -32,41 +32,29 @@ module.exports = async function() {
 		app.buildDir = buildDir;
 	}
 
-	// create /tmp dir
-	// copy builds to that dir
-	// combine as a tar gz file
-	// copy to release dir
-	// ...naming in numbered order...
-	// (remove old releases)
-
 	let tmpDir = tmp.dirSync({
 		prefix : constants.TOOL_NAME,
 		unsafeCleanup : true
 	}).name;
 
-	console.log("temp dir:", tmpDir);
+	console.log("Compressing apps to temp dir...", tmpDir);
 
-	// Copy all apps to temp dir
+	// Copy all apps to temp dir (compressing as tar.gz)
 	for (let app of allApps) {
-		fs.copySync(app.buildDir, tmpDir + "/" + makeFullAppName(app.name));
+		tar.c({
+			sync : true,
+			gzip : true,
+			strict : true,
+			cwd : app.buildDir,
+			file : tmpDir + "/" + makeFullAppName(app.name) + ".tar.gz"
+		}, fs.readdirSync(app.buildDir));
 	}
 
-	console.log("Compressing release...");
+	let releaseDir = getNextReleaseDir();
 
-	// build as a tar gz file to release dir
+	fs.copySync(tmpDir + "/", releaseDir);
 
-	let files = fs.readdirSync(tmpDir);
-	let releaseFile = getNextReleaseFile();
-
-	tar.c({
-		sync : true,
-		gzip : true,
-		strict : true,
-		cwd : tmpDir,
-		file : releaseFile
-	}, files);
-
-	console.log("New release saved to:", releaseFile);
+	console.log("New release saved to:", releaseDir);
 
 	// Successful release, so increase release number
 	db.update("latestReleaseNum", n => n + 1)
