@@ -1,15 +1,10 @@
 const fs = require("fs-extra");
 const path = require("path");
 const tmp = require("tmp");
-const tar = require("tar");
 const constants = require("./constants.js");
 const findApps = require("./findApps.js");
-const {findProjectName, makeFullAppName} = require("./utils.js");
+const {findProjectName, getReleaseDir} = require("./utils.js");
 const db = require("./db.js");
-
-function getReleaseDir(releaseNumber) {
-	return constants.RELEASE_DIR + `/release-${releaseNumber}`;
-}
 
 function getNextReleaseDir() {
 	return getReleaseDir( db.get("latestReleaseNum").value() + 1);
@@ -33,22 +28,26 @@ module.exports = async function() {
 	}
 
 	let tmpDir = tmp.dirSync({
-		prefix : constants.TOOL_NAME,
+		prefix : constants.TOOL_NAME + "-release",
 		unsafeCleanup : true
 	}).name;
 
 	console.log("Compressing apps to temp dir...", tmpDir);
 
-	// Copy all apps to temp dir (compressing as tar.gz)
+	// Copy all apps to temp dir
 	for (let app of allApps) {
+		fs.copySync(app.buildDir, tmpDir + "/" + app.name);
+	}
+
+	/*for (let app of allApps) {
 		tar.c({
 			sync : true,
 			gzip : true,
 			strict : true,
 			cwd : app.buildDir,
-			file : tmpDir + "/" + makeFullAppName(app.name) + ".tar.gz"
+			file : tmpDir + "/" + app.name + ".tar.gz"
 		}, fs.readdirSync(app.buildDir));
-	}
+	}*/
 
 	let releaseDir = getNextReleaseDir();
 

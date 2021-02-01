@@ -2,6 +2,8 @@
 const yargs = require("yargs/yargs");
 const findApps = require("./findApps.js");
 const createRelease = require("./createRelease.js");
+const deploy = require("./deploy.js");
+const getFingerprint = require("./getFingerprint.js");
 const {findProjectName} = require("./utils.js");
 
 yargs(process.argv.slice(2))
@@ -25,7 +27,12 @@ yargs(process.argv.slice(2))
 			choices : ["staging", "production"]
 		})
 	}, argv => {
-		console.log(`will deploy to ${argv.target}`);
+		console.log(`Deploying to ${argv.target}`);
+		deploy(argv.target);
+	})
+	.command("get-fingerprint <hostIP>", "Get the ed25519 fingerprint of the specified host", {}, (argv) => {
+		console.log(`Getting fingerprint of ${argv.hostIP}...`);
+		getFingerprint(argv.hostIP);
 	})
 	.help()
 	.argv;
