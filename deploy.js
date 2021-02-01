@@ -53,14 +53,10 @@ function rsync(host, sourceDir, destDir, extraArgs = []) {
 }
 
 function syncRemoteScripts(host) {
-	// rsync as root using sudo rsync
 	return rsync(host, __dirname + "/remote-scripts/", REMOTE_SCRIPT_DIR);
 }
 
 function syncDeployment(host, deploymentDir) {
-	console.log("Deploying package to control server", host);
-
-	// rsync as root using sudo-rsync
 	return rsync(host, deploymentDir, REMOTE_DEPLOYMENTS_DIR + "/");
 }
 
@@ -114,9 +110,13 @@ function ensureControlKey(target) {
 		fs.accessSync(keyPath);
 	} catch (error) {
 		if (error.code == "ENOENT") {
+			// clear copied status flags in case the key for this target has been deleted and this is a new key
+			// new key will then be copied on next deploy
+			db.set(`controKeyCopiedStatus.${target}`, {})
+				.write();
+
 			console.log(`Control key did not exist for ${target}, creating...`);
-			// -a rounds not really useful as not using a passphrase...?
-			let stdout = child_process.execSync("ssh-keygen -t ed25519 -o -a 200 -N \"\" -f" + keyPath);
+			let stdout = child_process.execSync("ssh-keygen -t ed25519 -N \"\" -f" + keyPath);
 			console.log(stdout.toString());
 		} else {
 			throw error;
@@ -124,19 +124,34 @@ function ensureControlKey(target) {
 	}
 }
 
-async function copyControlKeyToHost(keyPath, host) {
+function hostToProp(host) { // turn an IP address into a string that can be used as a lowdb object property
+	return host.replace(/\./g, "-").replace(/:/g, "_");
+}
+
+async function copyControlKeyToHost(target, host) {
+	if (db.get(`controKeyCopiedStatus.${target}.${hostToProp(host)}`).value()) {
+		return; // Already copied for this target
+	}
+
+	let keyPath = getControlKeyPath(target);
+
 	// This is untested when getSSHKeyPath is anything other than the default ID
-	// (not certain if IdentityFile is the right way to do this)
-	const {stdout, stderr} = await exec(`ssh-copy-id -i "${keyPath}" -o 'IdentityFile "${getSSHKeyPath()}"' root@${host}`);
-	printStdLines(stdout.toString());
+	// -f is required due to some... issues.... with the key not getting copied
+	// (possibly due to ssh seeing that the IdentityFile works for login, despite the key we want to copy being different. not sure about that though!)
+	// The copied status check above should prevent it being added again anyway.
+	// It does mean if the local appcontrol state is deleted it could be added more than once.
+	const {stdout, stderr} = await exec(`ssh-copy-id -i "${keyPath}" -o 'IdentityFile "${getSSHKeyPath()}"' -f root@${host}`);
+	//printStdLines(stdout.toString());
 	//printStdLines(stderr.toString());
+
+	console.log("Copied key to", host);
+	db.set(`controKeyCopiedStatus.${target}.${hostToProp(host)}`, true)
+		.write();
 }
 
 async function copyControlKeyToServers(target, servers) {
-	let keyPath = getControlKeyPath(target);
-
 	await Promise.all(servers.map(
-		server => copyControlKeyToHost(keyPath, server.ip)
+		server => copyControlKeyToHost(target, server.ip)
 	));
 }
 
@@ -197,10 +212,10 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 
 	let controlServer = servers[0];
 
-	console.log("Checking server control keys...");
-
 	// Ensure there is a ssh key for the control server
 	ensureControlKey(target);
+
+	console.log("Checking server control keys...");
 
 	// Deploy it to every server in the target!
 	await copyControlKeyToServers(target, servers);
@@ -216,7 +231,7 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 	// Build deploy package for the control server (apps, config, keys)
 	let {deploymentDir, purgeDeploymentDir} = buildDeployment(target, releaseDir, appsUsed);
 
-	console.log("Syncing deployment...");
+	console.log("Deploying package to control server", controlServer.ip);
 
 	try {
 		await syncDeployment(controlServer.ip, deploymentDir);
@@ -231,7 +246,7 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 	try {
 		await runRemoteScript(controlServer.ip, "controlserver-deploy.py " + getDeploymentName(target));
 	} catch (error) {
-		console.log("Control server deploy failed", error);
+		console.log("Control server deploy failed", error.message); // Don't want to display the full stack, since the error was server side
 	}
 
 	console.log("Done.");

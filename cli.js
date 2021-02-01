@@ -31,7 +31,6 @@ yargs(process.argv.slice(2))
 		deploy(argv.target);
 	})
 	.command("get-fingerprint <hostIP>", "Get the ed25519 fingerprint of the specified host", {}, (argv) => {
-		console.log(`Getting fingerprint of ${argv.hostIP}...`);
 		getFingerprint(argv.hostIP);
 	})
 	.help()
