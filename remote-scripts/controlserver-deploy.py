@@ -1,6 +1,6 @@
 import sys, json, asyncio
 import constants
-from utils import getProjectNameAndTarget, rsync, getDeploymentKey
+from utils import getProjectNameAndTarget, rsync, getDeploymentKey, runOnAllHosts
 
 print("Initialising control server...")
 
@@ -18,7 +18,7 @@ print("deployTarget:", deployTarget)
 # Must deploy scripts (from working directory) to all other servers in this deploy target (to their local ~/appcontrol dir)
 # First, get the host IPs
 
-with open(constants.DEPLOYMENTS_DIR + "/" + deploymentName + "/appcontrol.json") as fp:
+with open(constants.CONTROLSERVER_DEPLOYMENTS_DIR + "/" + deploymentName + "/appcontrol.json") as fp:
     deployConfig = json.load(fp)
     assert (deployTarget in deployConfig)
 
@@ -35,11 +35,20 @@ with open(constants.KNOWN_HOSTS_PATH, "w") as fp:
 
 # Now want to rsync to each host!
 async def deploy():
-    commands = []
+    # Sync all the control scripts
+    await asyncio.gather(*[
+        rsync(host, getDeploymentKey(deploymentName), constants.CONTROLSERVER_SCRIPTS_DIR + "/", constants.SCRIPTS_DIR) for host in hosts
+    ])
 
-    for host in hosts:
-        commands.append( rsync(host, getDeploymentKey(deploymentName), "./", constants.SCRIPTS_DIR_NAME) )
+    # Run server-init.py on each. Creates some necessary dirs and installs some stuff if not already installed
+    runOnAllHosts(hosts, deploymentName, "server-init.py " + deploymentName)
 
-    await asyncio.gather(*commands)
+    # Sync all apps for each deployment
+    await asyncio.gather(*[
+        rsync(host, getDeploymentKey(deploymentName),
+            constants.CONTROLSERVER_DEPLOYMENTS_DIR + "/" + deploymentName + "/apps/",
+            constants.DEPLOYMENTS_DIR + "/" + deploymentName + "/"
+        ) for host in hosts
+    ])
 
 asyncio.run(deploy())

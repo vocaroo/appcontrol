@@ -74,7 +74,7 @@ function runRemoteScript(host, scriptName) {
 			key : MAIN_SSH_PRIVATE_KEY
 		});
 
-		ssh.exec("cd " + REMOTE_SCRIPT_DIR + "; python3 -B " + path.basename(scriptName), {
+		ssh.exec("python3 -B " + REMOTE_SCRIPT_DIR + "/" + path.basename(scriptName), {
 			exit : (code, stdout, stderr) => {
 				printStdLines(stdout, "remote says: ");
 				printStdLines(stderr, "remote says: ");
@@ -246,7 +246,8 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 	try {
 		await runRemoteScript(controlServer.ip, "controlserver-deploy.py " + getDeploymentName(target));
 	} catch (error) {
-		console.log("Control server deploy failed", error.message); // Don't want to display the full stack, since the error was server side
+		console.log(error.message); // Don't want to display the full stack, since the error was server side
+		console.log("Control server deploy failed.");
 	}
 
 	console.log("Done.");
