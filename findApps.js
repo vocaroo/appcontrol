@@ -8,9 +8,9 @@ const appDetectors = [
 	require("./appdetect/genericServerApp.js")
 ];
 
-function getDirNames(dirPath) {
+function getDirNames(dirPath) { // get list of subdirs, ignoring hidden dirs
 	let dirents = fs.readdirSync(dirPath, {withFileTypes : true});
-	return dirents.filter(dirent => dirent.isDirectory()).map(dirent => dirent.name);
+	return dirents.filter(dirent => dirent.isDirectory() && !dirent.name.startsWith(".")).map(dirent => dirent.name);
 }
 
 // find all apps, client and server, to be deployed
