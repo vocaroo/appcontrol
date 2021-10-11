@@ -36,7 +36,14 @@ module.exports = async function() {
 
 	// Copy all apps to temp dir
 	for (let app of allApps) {
-		fs.copySync(app.buildDir, tmpDir + "/" + app.name);
+		fs.copySync(app.buildDir, `${tmpDir}/${app.name}/release`);
+
+		// Also create a meta file for each app that records app type
+		fs.writeJsonSync(
+			tmpDir + `/${app.name}/appMeta.json`,
+			{isWebApp : app.detector.isWebApp},
+			{spaces : "\t"}
+		);
 	}
 
 	/*for (let app of allApps) {
