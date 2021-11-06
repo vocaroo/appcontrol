@@ -1,6 +1,7 @@
 const util = require("util");
 const child_process = require("child_process");
 const path = require("path");
+const assert = require("assert");
 const fs = require("fs-extra");
 const tmp = require("tmp");
 const SSH = require("simple-ssh");
@@ -193,13 +194,15 @@ function getAppsUsed(servers) {
 	let appsUsed = new Set();
 
 	servers.forEach(server =>
-		server.apps.forEach(appName => appsUsed.add(appName))
+		server.apps.forEach(appInfo => appsUsed.add(appInfo.app))
 	);
 
 	return Array.from(appsUsed);
 }
 
 module.exports = async function(target, releaseNumber = db.get("latestReleaseNum").value()) {
+	assert(!getDeploymentName(target).includes(" "), "Project name or deploy target must not contain spaces.");
+
 	let releaseDir = getReleaseDir(releaseNumber);
 	console.log(`Deploying release number ${releaseNumber} to ${target}...`);
 
@@ -207,6 +210,11 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 
 	if ( !(servers?.length > 0) ) {
 		console.log(`No servers for "${target}" found in config, nothing to do.`);
+		return;
+	}
+
+	if (!config.email) {
+		console.log("No email address in config, required for letsencrypt");
 		return;
 	}
 
@@ -244,7 +252,7 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 
 	// Init control server
 	try {
-		await runRemoteScript(controlServer.ip, "controlserver-deploy.py " + getDeploymentName(target));
+		await runRemoteScript(controlServer.ip, "control-deploy.py " + getDeploymentName(target));
 	} catch (error) {
 		console.log(error.message); // Don't want to display the full stack, since the error was server side
 		console.log("Control server deploy failed.");

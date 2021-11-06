@@ -2,6 +2,8 @@
 # on master server
 CONTROLSERVER_SCRIPTS_DIR = "appcontrol-master-scripts"
 CONTROLSERVER_DEPLOYMENTS_DIR = "appcontrol-master-deployments"
+CONTROLSERVER_CERTS_DIR = "appcontrol-master-certs"
+CONTROLSERVER_CONF_PATH = "appcontrol-master.conf.json"
 CONTROL_KEY_NAME = "control-key"
 KNOWN_HOSTS_PATH = ".ssh/known_hosts"
 

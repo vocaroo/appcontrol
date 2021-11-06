@@ -1,0 +1,99 @@
+# -- APPCONTROL-NGINX-CONFIG -- do not remove this line --
+user www-data;
+worker_processes auto;
+pid /run/nginx.pid;
+worker_rlimit_nofile 64000;
+
+events {
+	worker_connections 64000;
+	multi_accept on;
+	use epoll;
+}
+
+http {
+	sendfile on;
+	tcp_nopush on;
+	tcp_nodelay on;
+	keepalive_timeout 20;
+	types_hash_max_size 2048;
+	server_tokens off;	
+	client_max_body_size 1m;
+
+	include /etc/nginx/mime.types;
+	default_type application/octet-stream;
+
+	ssl_protocols TLSv1 TLSv1.1 TLSv1.2 TLSv1.3; # Dropping SSLv3, ref: POODLE
+	ssl_prefer_server_ciphers on;
+	
+	ssl_certificate ###SSL_CERT_DIR###/fullchain.pem;
+	ssl_certificate_key ###SSL_CERT_DIR###/privkey.pem;
+	
+	map $remote_addr $ip_anonym1 {
+		default 0.0.0;
+		"~(?P<ip>(\d+)\.(\d+)\.(\d+))\.\d+" $ip;
+		"~(?P<ip>[^:]+:[^:]+):" $ip;
+	}
+
+	map $remote_addr $ip_anonym2 {
+		default .0;
+		"~(?P<ip>(\d+)\.(\d+)\.(\d+))\.\d+" .0;
+		"~(?P<ip>[^:]+:[^:]+):" ::;
+	}
+
+	map $ip_anonym1$ip_anonym2 $ip_anonymized {
+		default 0.0.0.0;
+		"~(?P<ip>.*)" $ip;
+	}
+	
+	log_format anonymized '$ip_anonymized - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"';
+
+	#access_log /var/log/nginx/access.log anonymized;
+	access_log off;
+	error_log /var/log/nginx/error.log;
+
+	gzip on;
+	gzip_disable "msie6";
+
+	include /etc/nginx/conf.d/*.conf;
+	
+	# stuff will be inserted here when deploying
+###APP_UPSTREAM_SECTIONS###
+
+	server {
+		listen 80 default_server;
+		listen [::]:80 default_server;
+		server_name _;
+
+		location ~ ^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)$ {
+			default_type text/plain;
+			return 200 "$1.###LETSENCRYPT_ACCOUNT_THUMBPRINT###";
+		}
+
+		return 301 https://$host$request_uri;
+	}
+
+	server {
+		listen 443 ssl default_server;
+		listen [::]:443 ssl default_server;
+
+		root /var/www/html;
+		index index.html index.htm;
+
+		server_name _;
+		
+		# if didn't match with any app regex, and didn't match below as a file, show the main index.html
+		# we still try as a file first though
+		location / {
+			try_files $uri /index.html =404;
+		}
+		
+		# stuff will be inserted here when deploying
+###APP_LOCATION_SECTIONS###
+
+		# anything with a period in it, try as a file
+		location ~ ^.*\..*$ {
+			try_files $uri =404;
+		}
+	}
+}
+
