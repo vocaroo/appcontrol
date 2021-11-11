@@ -111,7 +111,7 @@ async def deploy():
 	])
 
 	# Run server-init.py on each. Creates some necessary dirs and installs some stuff if not already installed
-	runOnAllHosts(hosts, deploymentName, "host-init.py " + deploymentName)
+	runOnAllHosts(hosts, deploymentName, "host_init.py " + deploymentName)
 
 	# Now sync *ONLY* the desired apps and their SSL certs to each host
 	rsyncTasks = []
@@ -140,6 +140,6 @@ async def deploy():
 	await asyncio.gather(*rsyncTasks)
 
 	# Install all apps
-	runOnAllHosts(hosts, deploymentName, "host-install-apps.py")
+	runOnAllHosts(hosts, deploymentName, "host_install_apps.py")
 
 asyncio.run(deploy())
