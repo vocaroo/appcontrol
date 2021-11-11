@@ -51,7 +51,7 @@ def runOnAllHosts(hosts, deploymentName, scriptName):
 	# We might want timeout and retry in future, but let's see if it's actually necessary.
 	# Since these connections are between remote servers it should be rare.
 	client = ParallelSSHClient(hosts, pkey = constants.CONTROLSERVER_DEPLOYMENTS_DIR + "/" + deploymentName + "/control-key")
-	outputs = client.run_command("python3 -B " + constants.SCRIPTS_DIR + "/" + scriptName)
+	outputs = client.run_command("python3 -B " + constants.HOSTSERVER_SCRIPTS_DIR + "/" + scriptName)
 
 	client.join()
 

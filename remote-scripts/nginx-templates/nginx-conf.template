@@ -63,12 +63,6 @@ http {
 		listen 80 default_server;
 		listen [::]:80 default_server;
 		server_name _;
-
-		location ~ ^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)$ {
-			default_type text/plain;
-			return 200 "$1.###LETSENCRYPT_ACCOUNT_THUMBPRINT###";
-		}
-
 		return 301 https://$host$request_uri;
 	}
 

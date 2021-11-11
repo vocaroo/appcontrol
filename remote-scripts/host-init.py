@@ -9,8 +9,8 @@ assert(len(deploymentName) > 0)
 
 print("Deployment name:", deploymentName)
 
-os.makedirs(constants.DEPLOYMENTS_DIR, exist_ok = True)
-os.makedirs(constants.DEPLOYMENTS_DIR + "/" + deploymentName, exist_ok = True)
+os.makedirs(constants.HOSTSERVER_DEPLOYMENTS_DIR, exist_ok = True)
+os.makedirs(constants.HOSTSERVER_DEPLOYMENTS_DIR + "/" + deploymentName, exist_ok = True)
 
 # Install nginx
 if shutil.which("nginx") == None:

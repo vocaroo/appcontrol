@@ -1,6 +1,7 @@
 import sys, json, asyncio, os, re
 import constants
 from utils import getProjectNameAndTarget, rsync, getDeploymentKey, runOnAllHosts, runCommand, ConfigStore
+from control_utils import getCertPrivkeyPath, getCertFullchainPath, getAllDomains, getDomainsInServer, getAppsInServer
 
 ACME_SH_PATH = "/root/.acme.sh/acme.sh"
 
@@ -65,25 +66,11 @@ if email != localConf.get("email"):
 
 # Get all domains for this deployment
 
-def getAllDomains(servers):
-	domainSet = set()
-	for server in servers:
-		for appInfo in server["apps"]:
-			if "domain" in appInfo:
-				domainSet.add(appInfo["domain"])
-	return domainSet
-
 domainSet = getAllDomains(servers)
 
 print("All domains in this deployment:", str(domainSet))
 
 # Issue certs!!
-
-def getCertPrivkeyPath(domain):
-	return constants.CONTROLSERVER_CERTS_DIR + "/" + domain + ".key.pem"
-
-def getCertFullchainPath(domain):
-	return constants.CONTROLSERVER_CERTS_DIR + "/" + domain + ".fullchain.pem"
 
 def issueCerts(domainSet):
 	dnsHookName = letsencryptConfig["dns_hook"]
@@ -118,21 +105,39 @@ if len(domainsWithoutCerts) > 0:
 
 # Now want to rsync to each host!
 async def deploy():
-	# Sync all the control scripts
+	# Sync all the control scripts to *all* hosts
 	await asyncio.gather(*[
-		rsync(host, getDeploymentKey(deploymentName), constants.CONTROLSERVER_SCRIPTS_DIR + "/", constants.SCRIPTS_DIR) for host in hosts
+		rsync(host, getDeploymentKey(deploymentName), constants.CONTROLSERVER_SCRIPTS_DIR + "/", constants.HOSTSERVER_SCRIPTS_DIR) for host in hosts
 	])
 
 	# Run server-init.py on each. Creates some necessary dirs and installs some stuff if not already installed
 	runOnAllHosts(hosts, deploymentName, "host-init.py " + deploymentName)
 
-	# Sync all apps for each deployment
-	await asyncio.gather(*[
-		rsync(host, getDeploymentKey(deploymentName),
-			constants.CONTROLSERVER_DEPLOYMENTS_DIR + "/" + deploymentName + "/apps/",
-			constants.DEPLOYMENTS_DIR + "/" + deploymentName + "/"
-		) for host in hosts
-	])
+	# Now sync *ONLY* the desired apps and their SSL certs to each host
+	rsyncTasks = []
+
+	for server in servers:
+		appSet = getAppsInServer(server)
+		domainSet = getDomainsInServer(server)
+		host = server["ip"]
+
+		for appName in appSet:
+			rsyncTasks.append(rsync(host, getDeploymentKey(deploymentName),
+				constants.CONTROLSERVER_DEPLOYMENTS_DIR + "/" + deploymentName + "/apps/" + appName,
+				constants.HOSTSERVER_DEPLOYMENTS_DIR + "/" + deploymentName + "/"
+			))
+
+		for domainName in domainSet:
+			rsyncTasks.append(rsync(host, getDeploymentKey(deploymentName),
+				getCertPrivkeyPath(domainName),
+				constants.HOSTSERVER_CERTS_DIR + "/"
+			))
+			rsyncTasks.append(rsync(host, getDeploymentKey(deploymentName),
+				getCertFullchainPath(domainName),
+				constants.HOSTSERVER_CERTS_DIR + "/"
+			))
+
+	await asyncio.gather(*rsyncTasks)
 
 	# Install all apps
 	runOnAllHosts(hosts, deploymentName, "host-install-apps.py")
