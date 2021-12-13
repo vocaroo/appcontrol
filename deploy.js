@@ -7,6 +7,7 @@ const tmp = require("tmp");
 const SSH = require("simple-ssh");
 const constants = require("./constants.js");
 const db = require("./db.js");
+const validateConfig = require("./validateConfig.js");
 const {getReleaseDir, config, getSSHKeyPath, getControlKeyPath, findProjectName} = require("./utils.js");
 
 const REMOTE_SCRIPT_DIR = "appcontrol-master-scripts"; // directory only present on the control or master server
@@ -173,7 +174,9 @@ function buildDeployment(target, releaseDir, appNames) {
 	fs.mkdirSync(deploymentDir + "/apps");
 
 	// copy appcontrol
-	fs.copyFileSync(constants.LOCAL_CONFIG_FILE, deploymentDir + "/" + constants.LOCAL_CONFIG_FILE);
+	// we read it, validate it (also setting defaults), then write it out again
+	let deployConfig = validateConfig(fs.readJsonSync(constants.LOCAL_CONFIG_FILE), target);
+	fs.writeJsonSync(deploymentDir + "/" + constants.LOCAL_CONFIG_FILE, deployConfig, {spaces : "\t"});
 
 	// Copy control key
 	fs.copyFileSync(getControlKeyPath(target), deploymentDir + "/control-key");

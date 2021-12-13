@@ -22,11 +22,3 @@ def getDomainsInServer(server):
 		if "domain" in appInfo:
 			domainSet.add(appInfo["domain"])
 	return domainSet
-
-# Get set of apps required by a single server/host
-def getAppsInServer(server):
-	appSet = set()
-	for appInfo in server["apps"]:
-		if "app" in appInfo:
-			appSet.add(appInfo["app"])
-	return appSet

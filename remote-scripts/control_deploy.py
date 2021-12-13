@@ -1,7 +1,7 @@
-import sys, json, asyncio, os, re
+import sys, json, asyncio, os, re, tempfile, shutil
 import constants
 from utils import getProjectNameAndTarget, rsync, getDeploymentKey, runOnAllHosts, runCommand, ConfigStore
-from control_utils import getCertPrivkeyPath, getCertFullchainPath, getAllDomains, getDomainsInServer, getAppsInServer
+from control_utils import getCertPrivkeyPath, getCertFullchainPath, getAllDomains, getDomainsInServer
 
 ACME_SH_PATH = "/root/.acme.sh/acme.sh"
 
@@ -115,19 +115,45 @@ async def deploy():
 
 	# Now sync *ONLY* the desired apps and their SSL certs to each host
 	rsyncTasks = []
+	tempDirs = []
 
 	for server in servers:
-		appSet = getAppsInServer(server)
-		domainSet = getDomainsInServer(server)
 		host = server["ip"]
 
-		for appName in appSet:
-			rsyncTasks.append(rsync(host, getDeploymentKey(deploymentName),
+		for appInfo in server["apps"]:
+			appName = appInfo["app"]
+
+			# Copy app to a temp dir
+			tempDir = tempfile.TemporaryDirectory()
+			tempDirs.append(tempDir)
+			appTempDir = tempDir.name + "/" + appName
+
+			shutil.copytree(
 				constants.CONTROLSERVER_DEPLOYMENTS_DIR + "/" + deploymentName + "/apps/" + appName,
-				constants.HOSTSERVER_DEPLOYMENTS_DIR + "/" + deploymentName + "/"
+				appTempDir
+			)
+
+			# Inject some stuff that's needed by the host server into the app's appMeta.json
+			with open(appTempDir + "/appMeta.json", "r+") as fp:
+				appMeta = json.load(fp)
+				appMeta["appName"] = appName
+				appMeta["deploymentName"] = deploymentName
+
+				# Copy certain keys from appInfo/config only if set
+				for keyName in ["domain", "webPath", "instancesPerCPU"]:
+					if keyName in appInfo:
+						appMeta[keyName] = appInfo[keyName]
+
+			with open(appTempDir + "/appMeta.json", "w") as fp:
+				json.dump(appMeta, fp, indent = "\t")
+
+			# Rsync the tweaked app to the host
+			rsyncTasks.append(rsync(host, getDeploymentKey(deploymentName),
+				appTempDir,
+				constants.HOSTSERVER_APPS_DIR + "/" + deploymentName + "/"
 			))
 
-		for domainName in domainSet:
+		for domainName in getDomainsInServer(server):
 			rsyncTasks.append(rsync(host, getDeploymentKey(deploymentName),
 				getCertPrivkeyPath(domainName),
 				constants.HOSTSERVER_CERTS_DIR + "/"
@@ -138,6 +164,10 @@ async def deploy():
 			))
 
 	await asyncio.gather(*rsyncTasks)
+
+	# Clean up tempdirs only after rsyncs have finished
+	for tempDir in tempDirs:
+		tempDir.cleanup()
 
 	# Install all apps
 	runOnAllHosts(hosts, deploymentName, "host_install_apps.py")

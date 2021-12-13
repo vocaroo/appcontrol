@@ -1,4 +1,3 @@
-# -- APPCONTROL-NGINX-CONFIG -- do not remove this line --
 user www-data;
 worker_processes auto;
 pid /run/nginx.pid;
@@ -24,9 +23,6 @@ http {
 
 	ssl_protocols TLSv1 TLSv1.1 TLSv1.2 TLSv1.3; # Dropping SSLv3, ref: POODLE
 	ssl_prefer_server_ciphers on;
-	
-	ssl_certificate ###SSL_CERT_DIR###/fullchain.pem;
-	ssl_certificate_key ###SSL_CERT_DIR###/privkey.pem;
 	
 	map $remote_addr $ip_anonym1 {
 		default 0.0.0;
@@ -56,8 +52,7 @@ http {
 
 	include /etc/nginx/conf.d/*.conf;
 	
-	# stuff will be inserted here when deploying
-###APP_UPSTREAM_SECTIONS###
+###APP_UPSTREAM_BLOCKS###
 
 	server {
 		listen 80 default_server;
@@ -66,28 +61,6 @@ http {
 		return 301 https://$host$request_uri;
 	}
 
-	server {
-		listen 443 ssl default_server;
-		listen [::]:443 ssl default_server;
-
-		root /var/www/html;
-		index index.html index.htm;
-
-		server_name _;
-		
-		# if didn't match with any app regex, and didn't match below as a file, show the main index.html
-		# we still try as a file first though
-		location / {
-			try_files $uri /index.html =404;
-		}
-		
-		# stuff will be inserted here when deploying
-###APP_LOCATION_SECTIONS###
-
-		# anything with a period in it, try as a file
-		location ~ ^.*\..*$ {
-			try_files $uri =404;
-		}
-	}
+###SERVER_BLOCKS###
 }
 

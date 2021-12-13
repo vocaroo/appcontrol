@@ -1,0 +1,25 @@
+server {
+	listen 443 ssl default_server;
+	listen [::]:443 ssl default_server;
+	
+	ssl_certificate ###SSL_CERT_FULLCHAIN###;
+	ssl_certificate_key ###SSL_CERT_KEY###;
+
+	root ###DEFAULT_ROOT###;
+	index index.html index.htm;
+
+	server_name ###DOMAIN_NAME###;
+		
+	# if didn't match with any app regex, and didn't match below as a file, show the main index.html
+	# we still try as a file first though
+	location / {
+		try_files $uri /index.html =404;
+	}
+	
+###APP_LOCATION_BLOCKS###
+
+	# anything with a period in it, try as a file
+	location ~ ^.*\..*$ {
+		try_files $uri =404;
+	}
+}

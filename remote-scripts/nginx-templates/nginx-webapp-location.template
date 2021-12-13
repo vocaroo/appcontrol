@@ -1,12 +1,12 @@
 # match a path with no file extension, serving index.html
-location ~ ^\/###WEBAPP_DIR###\/###APPNAME###[^.]*$ {
-	root ###BASE_DIR###;
-	try_files $uri /###WEBAPP_DIR###/###APPNAME###/index.html =404;
+location ~ ^\/###WEBPATH###[^.]*$ {
+	root ###ROOT_DIR###;
+	try_files $uri /###WEBPATH###/index.html =404;
 }
 
 # match a path with a file extension, serve the actual file
-location ~ ^\/###WEBAPP_DIR###\/###APPNAME###\/.*\.[^.]+$ {
-	root ###BASE_DIR###;
+location ~ ^\/###WEBPATH###\/.*\.[^.]+$ {
+	root ###ROOT_DIR###;
 	try_files $uri =404;
 }
 
