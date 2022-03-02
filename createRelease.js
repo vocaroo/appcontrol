@@ -3,7 +3,7 @@ const path = require("path");
 const tmp = require("tmp");
 const constants = require("./constants.js");
 const findApps = require("./findApps.js");
-const {findProjectName, getReleaseDir} = require("./utils.js");
+const {getReleaseDir} = require("./utils.js");
 const db = require("./db.js");
 
 function getNextReleaseDir() {

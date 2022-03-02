@@ -5,6 +5,9 @@ const assert = require("assert");
 // Validates only the specific target, removes stuff for other targets
 module.exports = function validateConfig(config, target) {
 	let validated = {};
+	
+	// Special character used to separate things in names on control server
+	assert(!target.includes("---"), "Deploy target name must not contain three hyphens together");
 
 	assert(config.email, "No email in config");
 	assert(config.letsencrypt, "No letsencrypt block in config");
@@ -20,6 +23,7 @@ module.exports = function validateConfig(config, target) {
 
 		for (let appInfo of server.apps) {
 			assert(!appNameSet.has(appInfo.app), "Duplicate apps in server block!");
+			assert(!appInfo.app.includes("---"), "App name must not contain three hyphens.");
 			appNameSet.add(appInfo.app);
 		}
 	}

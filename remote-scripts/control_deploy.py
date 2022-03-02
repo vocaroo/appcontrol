@@ -1,7 +1,7 @@
 import sys, json, asyncio, os, re, tempfile, shutil
 import constants
-from utils import getProjectNameAndTarget, rsync, getDeploymentKey, runOnAllHosts, runCommand, ConfigStore
-from control_utils import getCertPrivkeyPath, getCertFullchainPath, getAllDomains, getDomainsInServer
+from utils import getProjectNameAndTarget, rsync, getDeploymentKey, runOnAllHosts, runCommand, ConfigStore, hostsFromServers
+from control_utils import readDeployConfigServers, getCertPrivkeyPath, getCertFullchainPath, getAllDomains, getDomainsInServer
 
 ACME_SH_PATH = "/root/.acme.sh/acme.sh"
 
@@ -25,14 +25,21 @@ localConf = ConfigStore(constants.CONTROLSERVER_CONF_PATH)
 
 # Must deploy scripts (from working directory) to all other servers in this deploy target (to their local ~/appcontrol dir)
 # First, get the host IPs
+deployConfig, servers = readDeployConfigServers(deploymentName)
+letsencryptConfig = deployConfig["letsencrypt"]
+hosts = hostsFromServers(servers)
 
-with open(constants.CONTROLSERVER_DEPLOYMENTS_DIR + "/" + deploymentName + "/appcontrol.json") as fp:
-	deployConfig = json.load(fp)
-	assert (deployTarget in deployConfig)
+# Write cron job to propagate certs
+def writeCertPropagationCron():
+	cronFilePath = "/etc/cron.daily/" + constants.TOOL_NAME_LOWERCASE + "-propagate-certs"
+	
+	with open(cronFilePath, "w") as fp:
+		certPropagateScriptPath = constants.CONTROLSERVER_SCRIPTS_DIR + "/control_propagate_certs.py"
+		fp.write("#!/bin/sh\ncd /root && python3 " + certPropagateScriptPath + " >> /var/log/" + constants.TOOL_NAME_LOWERCASE + "-propagate-certs.log")
+	
+	os.chmod(cronFilePath, 0o755)
 
-	servers = deployConfig[deployTarget]
-	letsencryptConfig = deployConfig["letsencrypt"]
-	hosts = [server["ip"] for server in servers]
+writeCertPropagationCron()
 
 print("Deploying to hosts", hosts)
 

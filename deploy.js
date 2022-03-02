@@ -158,10 +158,10 @@ async function copyControlKeyToServers(target, servers) {
 }
 
 function getDeploymentName(target) {
-	return findProjectName() + "-" + target; // e.g. "MyProject-production"
+	return findProjectName() + "---" + target; // e.g. "MyProject---production"
 }
 
-function buildDeployment(target, releaseDir, appNames) {
+function buildDeployment(validatedConfig, target, releaseDir, appNames) {
 	let tmpDir = tmp.dirSync({
 		prefix : constants.TOOL_NAME + "-deploy"
 	}).name;
@@ -173,10 +173,8 @@ function buildDeployment(target, releaseDir, appNames) {
 	fs.mkdirSync(deploymentDir);
 	fs.mkdirSync(deploymentDir + "/apps");
 
-	// copy appcontrol
-	// we read it, validate it (also setting defaults), then write it out again
-	let deployConfig = validateConfig(fs.readJsonSync(constants.LOCAL_CONFIG_FILE), target);
-	fs.writeJsonSync(deploymentDir + "/" + constants.LOCAL_CONFIG_FILE, deployConfig, {spaces : "\t"});
+	// copy *validated* appcontrol
+	fs.writeJsonSync(deploymentDir + "/" + constants.LOCAL_CONFIG_FILE, validatedConfig, {spaces : "\t"});
 
 	// Copy control key
 	fs.copyFileSync(getControlKeyPath(target), deploymentDir + "/control-key");
@@ -204,7 +202,10 @@ function getAppsUsed(servers) {
 }
 
 module.exports = async function(target, releaseNumber = db.get("latestReleaseNum").value()) {
+	// Validation
 	assert(!getDeploymentName(target).includes(" "), "Project name or deploy target must not contain spaces.");
+	assert(!findProjectName().includes("---"), "Project name must not contain three hyphens.");
+	let validatedConfig = validateConfig(fs.readJsonSync(constants.LOCAL_CONFIG_FILE), target); // This also may set some defaults
 
 	let releaseDir = getReleaseDir(releaseNumber);
 	console.log(`Deploying release number ${releaseNumber} to ${target}...`);
@@ -240,7 +241,7 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 	let appsUsed = getAppsUsed(servers);
 
 	// Build deploy package for the control server (apps, config, keys)
-	let {deploymentDir, purgeDeploymentDir} = buildDeployment(target, releaseDir, appsUsed);
+	let {deploymentDir, purgeDeploymentDir} = buildDeployment(validatedConfig, target, releaseDir, appsUsed);
 
 	console.log("Deploying package to control server", controlServer.ip);
 

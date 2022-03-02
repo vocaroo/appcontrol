@@ -1,4 +1,6 @@
+import json
 import constants
+from utils import getProjectNameAndTarget
 
 def getCertPrivkeyPath(domain):
 	return constants.CONTROLSERVER_CERTS_DIR + "/" + domain + ".key.pem"
@@ -22,3 +24,13 @@ def getDomainsInServer(server):
 		if "domain" in appInfo:
 			domainSet.add(appInfo["domain"])
 	return domainSet
+
+def readDeployConfigServers(deploymentName):
+	projectName, deployTarget = getProjectNameAndTarget(deploymentName)
+	
+	with open(constants.CONTROLSERVER_DEPLOYMENTS_DIR + "/" + deploymentName + "/" + constants.LOCAL_CONFIG_FILE) as fp:
+		deployConfig = json.load(fp)
+		assert (deployTarget in deployConfig)
+		servers = deployConfig[deployTarget]
+	
+	return (deployConfig, servers)

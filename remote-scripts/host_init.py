@@ -1,6 +1,6 @@
 import os, sys, shutil
 import constants
-from utils import getProjectNameAndTarget, runCommand
+from utils import runCommand
 
 print("Will init this server!")
 
