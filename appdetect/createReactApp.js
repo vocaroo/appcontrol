@@ -4,6 +4,9 @@ const child_process = require("child_process");
 
 exports.isWebApp = true;
 
+// No runtime for static web apps
+exports.defaults = {};
+
 exports.detect = function(dirPath) {
 	// detect existence of "react-scripts build" in package.json
 	try {

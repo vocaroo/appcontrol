@@ -11,7 +11,7 @@ def getDeploymentKey(deploymentName):
 def hostsFromServers(servers):
 	return [server["ip"] for server in servers]
 
-def runCommand(args, addToEnv = None):
+def runCommand(args, addToEnv = None, returnCode = False):
 	env = None
 
 	if addToEnv:
@@ -20,8 +20,12 @@ def runCommand(args, addToEnv = None):
 			env[key] = value
 
 	completed = subprocess.run(args, stdout = subprocess.PIPE, stderr = subprocess.PIPE, env = env)
-	completed.check_returncode()
-	return completed.stdout.decode("utf-8").strip()
+	
+	if returnCode:
+		return completed.returncode
+	else:
+		completed.check_returncode()
+		return completed.stdout.decode("utf-8").strip()
 
 async def runCommandAsync(argList):
 	proc = await asyncio.create_subprocess_exec(*argList, stdout = asyncio.subprocess.PIPE, stderr = asyncio.subprocess.PIPE)

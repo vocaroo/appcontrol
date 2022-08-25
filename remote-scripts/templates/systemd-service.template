@@ -1,0 +1,21 @@
+[Unit]
+After=network.target
+
+[Service]
+Environment=PORT=###PORT###
+###ENVIRONMENT###
+Type=simple
+WorkingDirectory=###WORKING_DIRECTORY###
+ExecStart=###EXEC_CMD###
+Restart=always
+
+# only send sigterm to parent, but send sigkill to parent and all children
+# for graceful shutdown so that e.g. ffmpeg tasks don't get killed
+KillMode=mixed
+
+# wait this long after TERM signal before sending KILL
+# so allows this long for graceful shutdown
+TimeoutStopSec=300s
+
+[Install]
+WantedBy=multi-user.target

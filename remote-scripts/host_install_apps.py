@@ -1,18 +1,29 @@
 # Install all apps that have been deployed to this server
-import os, json, secrets, shutil
+import os, json, secrets, shutil, importlib, glob
 import constants
+from pathlib import Path
 from utils import runCommand
-from host_utils import getCertPrivkeyPath, getCertFullchainPath, fromTemplate
+from host_utils import fromTemplate, loadRuntimes, getAppInstalledPath, getInstanceCount, getServiceName, formatEnvForSystemd
+from build_nginx_config import buildNginxConf
 
 print("Will install apps on this server!")
 
+# Import runtime plugins
+runtimes = loadRuntimes()
+
 # All apps found across all deployments
 allApps = []
+
+# All used runtimes
+usedRuntimes = set()
 
 for deploymentName in os.listdir(constants.HOSTSERVER_APPS_DIR):
 	for appName in os.listdir(constants.HOSTSERVER_APPS_DIR + "/" + deploymentName):
 		with open(constants.HOSTSERVER_APPS_DIR + "/" + deploymentName + "/" + appName + "/appMeta.json", "r") as fp:
 			appMeta = json.load(fp)
+		
+		if "runtime" in appMeta:
+			usedRuntimes.add(appMeta["runtime"])
 
 		allApps.append({
 			"appName" : appName,
@@ -20,8 +31,21 @@ for deploymentName in os.listdir(constants.HOSTSERVER_APPS_DIR):
 			"domain" : appMeta.get("domain", None),
 			"webPath" : appMeta.get("webPath", "/"),
 			"instancesPerCPU" : appMeta.get("instancesPerCPU", 0),
-			"isWebApp" : appMeta["isWebApp"]
+			"isWebApp" : appMeta["isWebApp"],
+			"runtime" : appMeta.get("runtime", None),
+			"main" : appMeta.get("main", None)
 		})
+
+# Go through all apps again and determine port ranges and real instance counts
+
+portIndex = constants.SERVERAPP_PORT_START
+
+for appInfo in allApps:
+	if not appInfo["isWebApp"]:
+		instanceCount = getInstanceCount(appInfo["instancesPerCPU"])
+		appInfo["instanceCount"] = instanceCount
+		appInfo["portRangeStart"] = portIndex
+		portIndex += instanceCount
 
 # Validate: Check that no two apps share the same domain and webPath
 domainAndWebPathSet = set()
@@ -30,6 +54,24 @@ for appInfo in allApps:
 	hash = str(appInfo["domain"]) + appInfo["webPath"]
 	assert hash not in domainAndWebPathSet, ("Same domain and webPath in more than one app: " + appInfo["appName"])
 	domainAndWebPathSet.add(hash)
+
+# return (name, version) from a string like "node:16". version may be None.
+def splitRuntimeVersion(runtimeName):
+	name = runtimeName
+	version = None
+	
+	if ":" in runtimeName:	# runtime has a version number
+		name, version = runtimeName.split(":")
+	
+	return name, version
+
+
+# Install runtimes (e.g. nodejs)
+# Ensure all runtimes (and correct versions) are installed on this host
+for runtimeName in usedRuntimes:
+	name, version = splitRuntimeVersion(runtimeName)	
+	# Install runtime, passing the version
+	runtimes[name].install(version)
 
 # Group apps by domain name
 appsByDomain = {}
@@ -52,81 +94,58 @@ oldInstallDirs = os.listdir(constants.HOSTSERVER_INSTALLED_APPS_DIR)
 newInstallDir = constants.HOSTSERVER_INSTALLED_APPS_DIR + "/" + secrets.token_hex(16)
 os.makedirs(newInstallDir, exist_ok = True)
 
-def getAppInstalledPath(appInfo):
-	return newInstallDir + "/" + appInfo["deploymentName"] + "/" + appInfo["appName"]
-
 # copy all apps (web and server) to subdirs in it. just the release dir.
 # ( /deploymentName/appName )
 for appInfo in allApps:
 	shutil.copytree(
 		constants.HOSTSERVER_APPS_DIR + "/" + appInfo["deploymentName"] + "/" + appInfo["appName"] + "/release",
-		getAppInstalledPath(appInfo)
+		getAppInstalledPath(newInstallDir, appInfo)
 	)
 
-def buildNginxConf(appsByDomain):
-	confServerBlocks = []
-	confUpstreamBlocks = []
-	portIndex = constants.SERVERAPP_PORT_START
+# Find existing systemd service units
+previousServices = set([os.path.basename(f) for f in glob.glob("/etc/systemd/system/" + constants.TOOL_NAME_LOWERCASE + "*")])
+currentServices = set()
 
-	# Add a server block for each domain name
-	# Each may in turn contain several apps
-	for domain, appInfos in appsByDomain.items():
-		rootApp = None
-		defaultRoot = "/var/www/html"
-		confLocationBlocks = []
+# Create systemd service units for all server apps
+for appInfo in allApps:
+	if not appInfo["isWebApp"]:
+		# Create one or more service instances
+		for i in range(appInfo["instanceCount"]):
+			serviceName = getServiceName(appInfo["deploymentName"], appInfo["appName"], i)
+			runtimeName, runtimeVersion = splitRuntimeVersion(appInfo["runtime"])
+			runtime = runtimes[runtimeName]
+			
+			workingDirectory = getAppInstalledPath(newInstallDir, appInfo)
+			mainScriptPath = workingDirectory + "/" + appInfo["main"]
+			
+			systemdConfig = fromTemplate("systemd-service.template", {
+				"###PORT###" : str(appInfo["portRangeStart"] + i),
+				"###ENVIRONMENT###" : formatEnvForSystemd(runtime.getEnv(runtimeVersion)),
+				"###WORKING_DIRECTORY###" : workingDirectory,
+				"###EXEC_CMD###" : runtime.getRunCommand(mainScriptPath, runtimeVersion)
+			})
+			
+			Path("/etc/systemd/system/" + serviceName).write_text(systemdConfig)
+			currentServices.add(serviceName)
 
-		for appInfo in appInfos: # For each app of this domain
-			# There is a top level, root, web app
-			if appInfo["webPath"] == "/":
-				assert appInfo["isWebApp"] == True, "Root app must be a web app"
-				rootApp = appInfo
-			else:
-				if appInfo["isWebApp"]:
-					# For other than the default, root, web app, add a location block
-					confLocationBlocks.append(fromTemplate("nginx-webapp-location.template", {
-						"###WEBPATH###" : appInfo["webPath"].strip("/"), # conf already has slashes
-						"###ROOT_DIR###" : getAppInstalledPath(appInfo)
-					}))
-				else: # Server app
-					# Create an upstream block
+# Remove no longer present services
 
-					upstreamName = appInfo["deploymentName"] + "-" + appInfo["appName"]
-					# Default to just one instance in total if "instancesPerCPU" is set to zero (the default)
-					# Otherwise... an instance per CPU!
-					instanceCount = appInfo["instancesPerCPU"] * os.cpu_count() if appInfo["instancesPerCPU"] > 0 else 1
+servicesToRemove = previousServices - currentServices
 
-					confUpstreamBlocks.append(fromTemplate("nginx-serverapp-upstream.template", {
-						"###UPSTREAM_NAME###" : upstreamName,
-						"###SERVERS###" : "\n".join(["server 127.0.0.1:" + str(portIndex + i) + " max_fails=0;" for i in range(0, instanceCount)])
-					}))
+for serviceName in servicesToRemove:
+	runCommand(["systemctl", "disable", serviceName])
+	runCommand(["systemctl", "--no-block", "stop", serviceName]) # no-blocking for graceful stop
+	os.remove("/etc/systemd/system/" + serviceName)
 
-					# Move the next available port forward by the number of instances
-					portIndex += instanceCount
+# Enable and (re)start desired services
+# (we need restart for existing units, and it appears to work for starting new units too...)
+for serviceName in currentServices:
+	runCommand(["systemctl", "enable", serviceName])
+	runCommand(["systemctl", "--no-block", "restart", serviceName])
 
-					# Create a location block
-					confLocationBlocks.append(fromTemplate("nginx-serverapp-location.template", {
-						"###WEBPATH###" : appInfo["webPath"].strip("/"), # conf already has slashes
-						"###UPSTREAM_NAME###" : upstreamName
-					}))
-
-		if rootApp:
-			defaultRoot = getAppInstalledPath(rootApp)
-
-		confServerBlocks.append(fromTemplate("nginx-server-block.template", {
-			"###SSL_CERT_FULLCHAIN###" : "/root/" + getCertFullchainPath(domain),
-			"###SSL_CERT_KEY###" : "/root/" + getCertPrivkeyPath(domain),
-			"###DEFAULT_ROOT###" : defaultRoot,
-			"###DOMAIN_NAME###" : domain,
-			"###APP_LOCATION_BLOCKS###" : "\n".join(confLocationBlocks)
-		}))
-
-	return fromTemplate("nginx-conf.template", {
-		"###APP_UPSTREAM_BLOCKS###" : "\n".join(confUpstreamBlocks),
-		"###SERVER_BLOCKS###" : "\n".join(confServerBlocks)
-	})
 
 # THEN, create nginx config!
-nginxConf = buildNginxConf(appsByDomain)
+nginxConf = buildNginxConf(newInstallDir, appsByDomain)
 
 # (Don't write it unless the conf building actually succeeded above)
 with open(constants.NGINX_CONF_PATH, "w") as fp:

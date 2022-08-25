@@ -3,7 +3,7 @@ const path = require("path");
 const tmp = require("tmp");
 const constants = require("./constants.js");
 const findApps = require("./findApps.js");
-const {getReleaseDir} = require("./utils.js");
+const {getReleaseDir, readJson} = require("./utils.js");
 const db = require("./db.js");
 
 function getNextReleaseDir() {
@@ -37,11 +37,20 @@ module.exports = async function() {
 	// Copy all apps to temp dir
 	for (let app of allApps) {
 		fs.copySync(app.buildDir, `${tmpDir}/${app.name}/release`);
+		
+		let defaultAppMeta = app.detector.defaults;
+		
+		// Read app.json, if one exists
+		let appJson = readJson(`${app.dir}/app.json`);
 
-		// Also create a meta file for each app that records app type
+		// Create a meta file for each app that records app type plus contents of app.json
 		fs.writeJsonSync(
 			tmpDir + `/${app.name}/appMeta.json`,
-			{isWebApp : app.detector.isWebApp},
+			{
+				...defaultAppMeta,
+				...appJson,
+				isWebApp : app.detector.isWebApp
+			},
 			{spaces : "\t"}
 		);
 	}

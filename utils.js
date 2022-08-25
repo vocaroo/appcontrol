@@ -2,15 +2,22 @@ const path = require("path");
 const fs = require("fs-extra");
 const constants = require("./constants.js");
 
-let config = {};
-
-try {
-	config = fs.readJsonSync(constants.LOCAL_CONFIG_FILE);
-} catch (error) {
-	if (error.code != "ENOENT") {
-		throw error;
+// Read json sync, returning empty object {} if no file existed
+function readJson(filePath) {
+	let json = {};
+	
+	try {
+		json = fs.readJsonSync(filePath);
+	} catch (error) {
+		if (error.code != "ENOENT") {
+			throw error;
+		}
 	}
+	
+	return json;
 }
+
+let config = readJson(constants.LOCAL_CONFIG_FILE);
 
 // lower case and replace any spaces with a hyphen
 function nameFromDir(dirPath) {
@@ -38,6 +45,7 @@ function getControlKeyPath(target) {
 }
 
 module.exports = {
+	readJson,
 	nameFromDir,
 	findProjectName,
 	getReleaseDir,
