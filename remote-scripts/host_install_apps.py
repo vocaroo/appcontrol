@@ -33,7 +33,8 @@ for deploymentName in os.listdir(constants.HOSTSERVER_APPS_DIR):
 			"instancesPerCPU" : appMeta.get("instancesPerCPU", 0),
 			"isWebApp" : appMeta["isWebApp"],
 			"runtime" : appMeta.get("runtime", None),
-			"main" : appMeta.get("main", None)
+			"main" : appMeta.get("main", None),
+			"env" : appMeta.get("env", {})
 		})
 
 # Go through all apps again and determine port ranges and real instance counts
@@ -120,7 +121,12 @@ for appInfo in allApps:
 			
 			systemdConfig = fromTemplate("systemd-service.template", {
 				"###PORT###" : str(appInfo["portRangeStart"] + i),
-				"###ENVIRONMENT###" : formatEnvForSystemd(runtime.getEnv(runtimeVersion)),
+				"###ENVIRONMENT###" : formatEnvForSystemd({
+					# Use env vars from the runtime and also the app.json
+					# app.json having precedence
+					**runtime.getEnv(runtimeVersion),
+					**appInfo["env"]
+				}),
 				"###WORKING_DIRECTORY###" : workingDirectory,
 				"###EXEC_CMD###" : runtime.getRunCommand(mainScriptPath, runtimeVersion)
 			})

@@ -24,5 +24,5 @@ class Runtime:
 		}
 	
 	def getRunCommand(self, mainScriptPath, version = None):
-		#return f"nvm run {version} --max-old-space-size=800 {mainScriptPath}"
-		return f"/root/.nvm/nvm-exec node --max-old-space-size=800 {mainScriptPath}"
+		#return f"nvm run {version} {mainScriptPath}"
+		return f"/root/.nvm/nvm-exec node {mainScriptPath}"
