@@ -27,7 +27,8 @@ exports.detect = function(dirPath) {
 // build the app at the given path, returning the build dir
 exports.build = function(dirPath) {
 	try {
-		child_process.execSync(`yarn --cwd "${dirPath}" build`);
+		//child_process.execSync(`yarn --cwd "${dirPath}" build`);
+		child_process.execSync(`npm --prefix "${dirPath}" run build`);
 	} catch (error) {
 		console.log("Error building create-react-app project", dirPath);
 		throw error;

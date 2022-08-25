@@ -3,10 +3,8 @@ const path = require("path");
 const assert = require("assert");
 const {nameFromDir} = require("./utils.js");
 
-const appDetectors = [
-	require("./appdetect/createReactApp.js"),
-	require("./appdetect/genericServerApp.js")
-];
+// Require all contents of the ./appdetect dir
+const appDetectors = fs.readdirSync(path.join(__dirname, "appdetect")).map(fileName => require("./appdetect/" + fileName));
 
 function getDirNames(dirPath) { // get list of subdirs, ignoring hidden dirs
 	let dirents = fs.readdirSync(dirPath, {withFileTypes : true});
