@@ -17,15 +17,18 @@ function readJson(filePath) {
 	return json;
 }
 
-let config = readJson(constants.LOCAL_CONFIG_FILE);
-
 // lower case and replace any spaces with a hyphen
-function nameFromDir(dirPath) {
-	return path.basename(dirPath).trim().toLowerCase().replace(/\s+/g, "-");
+function validateAppName(name) {
+	return name.trim().toLowerCase().replace(/\s+/g, "-");
+}
+
+function appNameFromDir(dirPath) {
+	return validateAppName(path.basename(dirPath));
 }
 
 function findProjectName() {
-	return nameFromDir(process.cwd());
+	// use same format as an app name
+	return appNameFromDir(process.cwd());
 }
 
 function getReleaseDir(releaseNumber) {
@@ -46,10 +49,10 @@ function getControlKeyPath(target) {
 
 module.exports = {
 	readJson,
-	nameFromDir,
+	validateAppName,
+	appNameFromDir,
 	findProjectName,
 	getReleaseDir,
 	getSSHKeyPath,
-	getControlKeyPath,
-	config
+	getControlKeyPath
 };

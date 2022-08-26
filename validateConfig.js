@@ -1,4 +1,5 @@
 const assert = require("assert");
+const {validateAppName} = require("./utils.js");
 
 // Validate the deploy config, returning a minimal config with some things removed
 // Used before the config is sent to the control server
@@ -9,7 +10,7 @@ module.exports = function validateConfig(config, target) {
 	// Special character used to separate things in names on control server
 	assert(!target.includes("---"), "Deploy target name must not contain three hyphens together");
 
-	assert(config.email, "No email in config");
+	assert(config.email, "No email in config, required for letsencrypt");
 	assert(config.letsencrypt, "No letsencrypt block in config");
 	assert(config.letsencrypt.dns_hook, "No letsencrypt dns_hook in config");
 	assert(config.letsencrypt.env, "No letsencrypt env in config");
@@ -22,6 +23,9 @@ module.exports = function validateConfig(config, target) {
 		let appNameSet = new Set();
 
 		for (let appInfo of server.apps) {
+			// validate (and possibly transform) name first
+			appInfo.app = validateAppName(appInfo.app);
+			
 			assert(!appNameSet.has(appInfo.app), "Duplicate apps in server block!");
 			assert(!appInfo.app.includes("---"), "App name must not contain three hyphens.");
 			appNameSet.add(appInfo.app);

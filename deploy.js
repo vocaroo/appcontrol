@@ -1,4 +1,5 @@
 const util = require("util");
+const process = require("process");
 const child_process = require("child_process");
 const path = require("path");
 const assert = require("assert");
@@ -8,7 +9,7 @@ const SSH = require("simple-ssh");
 const constants = require("./constants.js");
 const db = require("./db.js");
 const validateConfig = require("./validateConfig.js");
-const {getReleaseDir, config, getSSHKeyPath, getControlKeyPath, findProjectName} = require("./utils.js");
+const {getReleaseDir, getSSHKeyPath, getControlKeyPath, findProjectName} = require("./utils.js");
 
 const REMOTE_SCRIPT_DIR = "appcontrol-master-scripts"; // directory only present on the control or master server
 const REMOTE_DEPLOYMENTS_DIR = "appcontrol-master-deployments";
@@ -181,7 +182,16 @@ function buildDeployment(validatedConfig, target, releaseDir, appNames) {
 
 	// Copy all relevant apps
 	for (let appName of appNames) {
-		fs.copySync(releaseDir + "/" + appName, deploymentDir + "/apps/" + appName)
+		try {
+			fs.copySync(releaseDir + "/" + appName, deploymentDir + "/apps/" + appName)
+		} catch (error) {
+			if (error.code == "ENOENT") {
+				console.log(`Error, app "${appName}" not found in release.\nPerhaps you need to create a release?`);
+				process.exit(1);
+			} else {
+				throw error;
+			}
+		}
 	}
 
 	return {
@@ -210,15 +220,10 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 	let releaseDir = getReleaseDir(releaseNumber);
 	console.log(`Deploying release number ${releaseNumber} to ${target}...`);
 
-	let servers = config[target];
+	let servers = validatedConfig[target];
 
 	if ( !(servers?.length > 0) ) {
 		console.log(`No servers for "${target}" found in config, nothing to do.`);
-		return;
-	}
-
-	if (!config.email) {
-		console.log("No email address in config, required for letsencrypt");
 		return;
 	}
 

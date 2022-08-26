@@ -1,7 +1,7 @@
 const fs = require("fs-extra");
 const path = require("path");
 const assert = require("assert");
-const {nameFromDir} = require("./utils.js");
+const {appNameFromDir} = require("./utils.js");
 
 // Require all contents of the ./appdetect dir
 const appDetectors = fs.readdirSync(path.join(__dirname, "appdetect")).map(fileName => require("./appdetect/" + fileName));
@@ -17,6 +17,9 @@ module.exports = function findApps(startPath = "./") {
 		webApps : [],
 		serverApps : []
 	};
+	
+	// To ensure no duplicates
+	let appNameSet = new Set();
 
 	let dirNames = getDirNames(startPath);
 
@@ -37,7 +40,7 @@ module.exports = function findApps(startPath = "./") {
 
 		if (detectedAs) {
 			let appInfo = {
-				name : nameFromDir(dir),
+				name : appNameFromDir(dir),
 				dir : dir,
 				detector : detectedAs
 			};
@@ -47,6 +50,11 @@ module.exports = function findApps(startPath = "./") {
 			} else {
 				apps.serverApps.push(appInfo);
 			}
+			
+			//need to ensure that a name doesn't appear twice, since spaces will be converted to hyphens, this is possible
+			// e.g. "my app" and "my-app" will clash.
+			assert(!appNameSet.has(appInfo.name), `Two apps with the same name detected (${appInfo.name})`);
+			appNameSet.add(appInfo.name);
 		} else {
 			// Recurse
 			let subDirApps = findApps(dir);
@@ -54,6 +62,6 @@ module.exports = function findApps(startPath = "./") {
 			apps.serverApps = apps.serverApps.concat(subDirApps.serverApps);
 		}
 	}
-
+	
 	return apps;
 };
