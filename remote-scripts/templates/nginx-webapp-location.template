@@ -1,12 +1,12 @@
 # match a path with no file extension, serving index.html
-location ~ ^\/###WEBPATH###[^.]*$ {
+location /###WEBPATH### {
 	root ###ROOT_DIR###;
-	try_files $uri /###WEBPATH###/index.html =404;
+	try_files $uri /index.html =404;
 }
 
 # match a path with a file extension, serve the actual file
+# this is optional and serves to force a 404 rather than sending index.html for all non existent files
 location ~ ^\/###WEBPATH###\/.*\.[^.]+$ {
 	root ###ROOT_DIR###;
 	try_files $uri =404;
 }
-

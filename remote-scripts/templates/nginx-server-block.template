@@ -19,6 +19,7 @@ server {
 ###APP_LOCATION_BLOCKS###
 
 	# anything with a period in it, try as a file
+	# this is optional and serves to force a 404 rather than sending index.html for all non existent files
 	location ~ ^.*\..*$ {
 		try_files $uri =404;
 	}
