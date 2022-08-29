@@ -126,13 +126,13 @@ async def deploy():
 
 	for server in servers:
 		host = server["ip"]
+		
+		tempDir = tempfile.TemporaryDirectory()
+		tempDirs.append(tempDir)
 
+		# Copy all apps for this server and deployment to a temp dir
 		for appInfo in server["apps"]:
 			appName = appInfo["app"]
-
-			# Copy app to a temp dir
-			tempDir = tempfile.TemporaryDirectory()
-			tempDirs.append(tempDir)
 			appTempDir = tempDir.name + "/" + appName
 
 			shutil.copytree(
@@ -154,11 +154,12 @@ async def deploy():
 			with open(appTempDir + "/appMeta.json", "w") as fp:
 				json.dump(appMeta, fp, indent = "\t")
 
-			# Rsync the tweaked app to the host
-			rsyncTasks.append(rsync(host, getDeploymentKey(deploymentName),
-				appTempDir,
-				constants.HOSTSERVER_APPS_DIR + "/" + deploymentName + "/"
-			))
+		# Rsync the apps to the host
+		# This will also clear any apps that exist there and are no longer specified in the deployment
+		rsyncTasks.append(rsync(host, getDeploymentKey(deploymentName),
+			tempDir.name + "/",
+			constants.HOSTSERVER_APPS_DIR + "/" + deploymentName + "/"
+		))
 
 		for domainName in getDomainsInServer(server):
 			rsyncTasks.append(rsync(host, getDeploymentKey(deploymentName),
