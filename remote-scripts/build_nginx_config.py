@@ -1,6 +1,6 @@
 from host_utils import fromTemplate, getAppInstalledPath, getCertPrivkeyPath, getCertFullchainPath
 
-def addLocationBlock(appInfo, confUpstreamBlocks, confLocationBlocks):
+def addLocationBlock(appInfo, confUpstreamBlocks, confLocationBlocks, newInstallDir):
 	if appInfo["isWebApp"]:
 		# For other than the default, root, web app, add a location block
 		confLocationBlocks.append(fromTemplate("nginx-webapp-location.template", {
@@ -44,11 +44,11 @@ def buildNginxConf(newInstallDir, appsByDomain):
 			if appInfo["webPath"] == "/":
 				rootApp = appInfo
 			else:
-				addLocationBlock(appInfo, confUpstreamBlocks, confLocationBlocks)
+				addLocationBlock(appInfo, confUpstreamBlocks, confLocationBlocks, newInstallDir)
 		
 		# Add the root app last, so its regex location is matched last if other matches fail
 		if rootApp:
-			addLocationBlock(rootApp, confUpstreamBlocks, confLocationBlocks)
+			addLocationBlock(rootApp, confUpstreamBlocks, confLocationBlocks, newInstallDir)
 			
 			# Only add web root for a web app
 			if appInfo["isWebApp"]:
