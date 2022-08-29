@@ -2,9 +2,7 @@ const fs = require("fs-extra");
 const path = require("path");
 const child_process = require("child_process");
 
-exports.isWebApp = true;
-
-// No runtime for static web apps
+// No main for static web apps
 exports.defaults = {};
 
 exports.detect = function(dirPath) {

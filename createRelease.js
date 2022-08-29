@@ -1,5 +1,7 @@
 const fs = require("fs-extra");
 const path = require("path");
+const child_process = require("child_process");
+const process = require("process");
 const tmp = require("tmp");
 const constants = require("./constants.js");
 const findApps = require("./findApps.js");
@@ -14,17 +16,58 @@ module.exports = async function() {
 	fs.ensureDirSync(constants.LOCAL_DATA_DIR);
 	fs.ensureDirSync(constants.RELEASE_DIR);
 
-	let apps = findApps();
-	let allApps = apps.webApps.concat(apps.serverApps);
+	let allApps = findApps();
+	
+	// Read the app.json and/or get defaults from appDetector
+	for (let app of allApps) {
+		let detectorDefaults = app.detector ? app.detector.defaults : {};
+				
+		app.appMeta = {
+			...detectorDefaults,
+			...readJson(`${app.dir}/app.json`) // Override with app.json, if one exists
+		};
+		
+		// If it doesn't have a "main", then it's a web app.
+		app.appMeta.isWebApp = !app.appMeta.hasOwnProperty("main");
+	}
 
 	// Build all apps, both web and server
 	for (let app of allApps) {
 		console.log("Building app...", app.name);
-
-		let buildDir = app.detector.build(app.dir);
-		console.log("Built to", buildDir);
-		// Save build dir for later
-		app.buildDir = buildDir;
+		
+		// If a buildCmd is specified in app.json, we use that
+		// Otherwise if there is an app detector, and it provides a build method, we use that to build
+		// Otherwise, we don't build at all and assume doesn't need building
+		
+		if ("buildCmd" in app.appMeta) {
+			try {
+				child_process.execSync(app.appMeta.buildCmd, {cwd : app.dir});
+			} catch (error) {
+				console.log(`Error building using custom build command ${app.appMeta.buildCmd}`);
+				throw error;
+			}
+			
+			// use buildPath from app.json if present, otherwise use "build" as a default
+			app.buildDir = path.join(app.dir, app.appMeta.buildPath || "build");
+		} else if (app.detector?.build) {
+			app.buildDir = app.detector.build(app.dir);
+		} else {
+			// No build, just use as is
+			// Still will take from a buildPath if one was specified, otherwise use the app's top level dir
+			if ("buildPath" in app.appMeta) {
+				app.buildDir = path.join(app.dir, app.appMeta.buildPath);
+			} else {
+				app.buildDir = app.dir;
+			}
+			
+			// If the build dir is the app's top level dir, we need to know
+			// And maybe delete some things that we don't want copied (app.json)
+			if (app.buildDir == app.dir) {
+				app.usedOriginalDir = true;
+			}
+		}
+		
+		console.log("Built to ", app.buildDir);
 	}
 
 	let tmpDir = tmp.dirSync({
@@ -36,21 +79,24 @@ module.exports = async function() {
 
 	// Copy all apps to temp dir
 	for (let app of allApps) {
-		fs.copySync(app.buildDir, `${tmpDir}/${app.name}/release`);
+		let appTmpReleaseDir = `${tmpDir}/${app.name}/release`;
+		fs.copySync(app.buildDir, appTmpReleaseDir);
 		
-		let defaultAppMeta = app.detector.defaults;
-		
-		// Read app.json, if one exists
-		let appJson = readJson(`${app.dir}/app.json`);
+		// If we just copied the entire source dir, then remove any app.json that was copied across
+		if (app.usedOriginalDir) {
+			try {
+				fs.unlinkSync(appTmpReleaseDir + "/app.json");
+			} catch (error) {
+				if (error.code != "ENOENT") {
+					throw error;
+				}
+			}
+		}
 
 		// Create a meta file for each app that records app type plus contents of app.json
 		fs.writeJsonSync(
 			tmpDir + `/${app.name}/appMeta.json`,
-			{
-				...defaultAppMeta,
-				...appJson,
-				isWebApp : app.detector.isWebApp
-			},
+			app.appMeta,
 			{spaces : "\t"}
 		);
 	}

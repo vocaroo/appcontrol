@@ -2,8 +2,6 @@ const fs = require("fs");
 const path = require("path");
 const {readJson} = require("../utils.js");
 
-exports.isWebApp = false;
-
 exports.defaults = {
 	runtime : "node", // node latest
 	main : "server.js"
@@ -25,6 +23,5 @@ exports.detect = function(dirPath) {
 	}
 };
 
-exports.build = function(dirPath) {
-	return dirPath; // No building necessary for generic server apps. Just copy it as is.
-};
+// No building necessary for generic server apps. Just copy it as is.
+exports.build = null;

@@ -13,10 +13,7 @@ function getDirNames(dirPath) { // get list of subdirs, ignoring hidden dirs
 
 // find all apps, client and server, to be deployed
 module.exports = function findApps(startPath = "./") {
-	let apps = {
-		webApps : [],
-		serverApps : []
-	};
+	let apps = [];
 	
 	// To ensure no duplicates
 	let appNameSet = new Set();
@@ -38,18 +35,16 @@ module.exports = function findApps(startPath = "./") {
 
 		assert(detectedCount <= 1, "App detected as multiple types");
 
-		if (detectedAs) {
+		// Either detected by an appdetector OR
+		// not auto detected, but a custom app using an app.json file
+		if (detectedAs || fs.existsSync(`${dir}/app.json`)) {
 			let appInfo = {
 				name : appNameFromDir(dir),
 				dir : dir,
 				detector : detectedAs
 			};
-
-			if (detectedAs.isWebApp) {
-				apps.webApps.push(appInfo);
-			} else {
-				apps.serverApps.push(appInfo);
-			}
+			
+			apps.push(appInfo);
 			
 			//need to ensure that a name doesn't appear twice, since spaces will be converted to hyphens, this is possible
 			// e.g. "my app" and "my-app" will clash.
@@ -57,9 +52,7 @@ module.exports = function findApps(startPath = "./") {
 			appNameSet.add(appInfo.name);
 		} else {
 			// Recurse
-			let subDirApps = findApps(dir);
-			apps.webApps = apps.webApps.concat(subDirApps.webApps);
-			apps.serverApps = apps.serverApps.concat(subDirApps.serverApps);
+			apps = apps.concat(findApps(dir));
 		}
 	}
 	

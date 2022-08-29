@@ -3,10 +3,15 @@ const fs = require("fs-extra");
 const constants = require("./constants.js");
 
 // Read json sync, returning empty object {} if no file existed
+// Also return {} if an empty file
 function readJson(filePath) {
 	let json = {};
 	
-	try {
+	try {		
+		if (fs.statSync(filePath).size == 0) {
+			return {};
+		}
+		
 		json = fs.readJsonSync(filePath);
 	} catch (error) {
 		if (error.code != "ENOENT") {

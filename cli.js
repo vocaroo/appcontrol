@@ -13,8 +13,7 @@ yargs(process.argv.slice(2))
 
 		let apps = findApps();
 
-		console.log("Detected web apps: ", apps.webApps.map(appInfo => appInfo.name));
-		console.log("Detected server apps: ", apps.serverApps.map(appInfo => appInfo.name));
+		console.log("Detected apps: ", apps.map(appInfo => appInfo.name));
 	})
 	.command("release", "create a numbered release", {}, (argv) => {
 		console.log("will release");

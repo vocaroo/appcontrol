@@ -9,18 +9,6 @@ server {
 	index index.html index.htm;
 
 	server_name ###DOMAIN_NAME###;
-		
-	# if didn't match with any app regex, and didn't match below as a file, show the main index.html
-	# we still try as a file first though
-	location / {
-		try_files $uri /index.html =404;
-	}
-	
-###APP_LOCATION_BLOCKS###
 
-	# anything with a period in it, try as a file
-	# this is optional and serves to force a 404 rather than sending index.html for all non existent files
-	location ~ ^.*\..*$ {
-		try_files $uri =404;
-	}
+###APP_LOCATION_BLOCKS###
 }
