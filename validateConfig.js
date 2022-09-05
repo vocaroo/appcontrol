@@ -11,9 +11,6 @@ module.exports = function validateConfig(config, target) {
 	assert(!target.includes("---"), "Deploy target name must not contain three hyphens together");
 
 	assert(config.email, "No email in config, required for letsencrypt");
-	assert(config.letsencrypt, "No letsencrypt block in config");
-	assert(config.letsencrypt.dns_hook, "No letsencrypt dns_hook in config");
-	assert(config.letsencrypt.env, "No letsencrypt env in config");
 
 	// Validation of all servers in a target
 	// Check for duplicate app names within a server

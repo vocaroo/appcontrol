@@ -1,5 +1,5 @@
 # Install all apps that have been deployed to this server
-import os, json, secrets, shutil, importlib, glob
+import os, json, secrets, shutil, importlib, glob, sys
 import constants
 from pathlib import Path
 from utils import runCommand
@@ -7,6 +7,9 @@ from host_utils import fromTemplate, loadRuntimes, getAppInstalledPath, getInsta
 from build_nginx_config import buildNginxConf
 
 print("Will install apps on this server!")
+
+letsencryptThumbprint = sys.argv[1]
+assert(len(letsencryptThumbprint) > 0)
 
 # Import runtime plugins
 runtimes = loadRuntimes()
@@ -151,7 +154,7 @@ for serviceName in currentServices:
 
 
 # THEN, create nginx config!
-nginxConf = buildNginxConf(newInstallDir, appsByDomain)
+nginxConf = buildNginxConf(newInstallDir, appsByDomain, letsencryptThumbprint)
 
 # (Don't write it unless the conf building actually succeeded above)
 with open(constants.NGINX_CONF_PATH, "w") as fp:

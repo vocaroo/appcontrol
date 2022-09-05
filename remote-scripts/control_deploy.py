@@ -26,7 +26,6 @@ localConf = ConfigStore(constants.CONTROLSERVER_CONF_PATH)
 # Must deploy scripts (from working directory) to all other servers in this deploy target (to their local ~/appcontrol dir)
 # First, get the host IPs
 deployConfig, servers = readDeployConfigServers(deploymentName)
-letsencryptConfig = deployConfig["letsencrypt"]
 hosts = hostsFromServers(servers)
 
 # Write cron job to propagate certs
@@ -58,7 +57,14 @@ if not os.path.isdir(".acme.sh"):
 	print( runCommand(["sh", "/tmp/acme.sh", "--install-online", "-m", email]) )
 	assert os.path.isdir(".acme.sh")
 	print( runCommand([ACME_SH_PATH, "--set-default-ca", "--server", "letsencrypt"]) )
-	print( runCommand([ACME_SH_PATH, "--register-account"]) )
+	registerAccountStdout = runCommand([ACME_SH_PATH, "--register-account"])
+	print( registerAccountStdout )
+	thumbprint = re.search(r"ACCOUNT_THUMBPRINT='([-_a-zA-Z0-9]+)'", registerAccountStdout).group(1)
+	print(f"Letsencrypt account thumbprint [{thumbprint}]")
+	# Save letsencrypt account thumbprint
+	localConf.set("letsencryptThumbprint", thumbprint)
+
+assert localConf.get("letsencryptThumbprint"), "No letsencrypt thumbprint found"
 
 # Update letsencrypt account email if it has changed
 if email != localConf.get("email"):
@@ -77,9 +83,8 @@ domainSet = getAllDomains(servers)
 
 print("All domains in this deployment:", str(domainSet))
 
-# Issue certs!!
-
-def issueCerts(domainSet):
+def issueCertsDNS(domainSet):
+	letsencryptConfig = deployConfig["letsencrypt"]
 	dnsHookName = letsencryptConfig["dns_hook"]
 	challengeAliasDomain = letsencryptConfig.get("challenge_alias_domain") # Can be omitted, so will be None
 
@@ -95,31 +100,60 @@ def issueCerts(domainSet):
 		print(acmeShIssueCommandForThisDomain)
 		print(runCommand(acmeShIssueCommandForThisDomain, letsencryptConfig["env"]))
 
-		# Install the certs to another directory
+		# Install the certs to appcontrol-master-certs dir
 		print(runCommand([
 			ACME_SH_PATH, "--install-cert", "-d", domain,
 			"--key-file", getCertPrivkeyPath(domain),
 			"--fullchain-file", getCertFullchainPath(domain)
 		]))
 
-# Issue certs for those that have not already been issued (check for existance of cert)
+def issueCertsHTTP(domainSet):
+	acmeShIssueCommand = [ACME_SH_PATH, "--issue", "--stateless"]
+	
+	for domain in domainSet:
+		# Issue cert for each domain separately
+		acmeShIssueCommandForThisDomain = acmeShIssueCommand + ["-d", domain]
 
-domainsWithoutCerts = [domain for domain in domainSet if not os.path.isfile(getCertFullchainPath(domain))]
+		print(acmeShIssueCommandForThisDomain)
+		print(runCommand(acmeShIssueCommandForThisDomain))
 
-if len(domainsWithoutCerts) > 0:
-	print("Issuing certs for the following domains", str(domainsWithoutCerts))
-	issueCerts(domainsWithoutCerts)
+		# Install the certs to appcontrol-master-certs dir
+		print(runCommand([
+			ACME_SH_PATH, "--install-cert", "-d", domain,
+			"--key-file", getCertPrivkeyPath(domain),
+			"--fullchain-file", getCertFullchainPath(domain)
+		]))
 
-# Now want to rsync to each host!
-async def deploy():
+def issueCerts(domainSet):
+	if "letsencrypt" in deployConfig and "dns_hook" in deployConfig["letsencrypt"]:
+		issueCertsDNS(domainSet)
+	else:
+		issueCertsHTTP(domainSet)
+
+async def main():
+	await initHosts()
+	
+	# Issue certs for those that have not already been issued (check for existance of cert)
+	# Must initHosts above first to set up nginx to handle letsencrypt challenge
+	domainsWithoutCerts = [domain for domain in domainSet if not os.path.isfile(getCertFullchainPath(domain))]
+
+	if len(domainsWithoutCerts) > 0:
+		print("Issuing certs for the following domains", str(domainsWithoutCerts))
+		issueCerts(domainsWithoutCerts)
+	
+	await deploy()
+
+async def initHosts():
 	# Sync all the control scripts to *all* hosts
 	await asyncio.gather(*[
 		rsync(host, getDeploymentKey(deploymentName), constants.CONTROLSERVER_SCRIPTS_DIR + "/", constants.HOSTSERVER_SCRIPTS_DIR) for host in hosts
 	])
 
 	# Run server-init.py on each. Creates some necessary dirs and installs some stuff if not already installed
-	runOnAllHosts(hosts, deploymentName, "host_init.py " + deploymentName)
+	runOnAllHosts(hosts, deploymentName, "host_init.py " + deploymentName + " " + localConf.get("letsencryptThumbprint"))
 
+# Now want to rsync to each host!
+async def deploy():
 	# Now sync *ONLY* the desired apps and their SSL certs to each host
 	rsyncTasks = []
 	tempDirs = []
@@ -178,6 +212,6 @@ async def deploy():
 		tempDir.cleanup()
 
 	# Install all apps
-	runOnAllHosts(hosts, deploymentName, "host_install_apps.py")
+	runOnAllHosts(hosts, deploymentName, "host_install_apps.py " + localConf.get("letsencryptThumbprint"))
 
-asyncio.run(deploy())
+asyncio.run(main())

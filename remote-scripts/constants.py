@@ -19,4 +19,5 @@ CONTROL_KEY_NAME = "control-key"
 KNOWN_HOSTS_PATH = ".ssh/known_hosts"
 SERVERAPP_PORT_START = 9000
 NGINX_CONF_PATH = "/etc/nginx/nginx.conf"
+NGINX_CONF_MAGIC = "---APPCONTROL_MAGIC_IDENT---"
 LOCAL_CONFIG_FILE = "appcontrol.json" # Ideally this should be copied acrosss from constants.js! (is repeated from there)

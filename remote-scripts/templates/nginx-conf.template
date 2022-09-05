@@ -1,3 +1,4 @@
+# ---APPCONTROL_MAGIC_IDENT--- # Used to identify that nginx conf has been set up by AppControl. Do not edit this line.
 user www-data;
 worker_processes auto;
 pid /run/nginx.pid;
@@ -58,7 +59,15 @@ http {
 		listen 80 default_server;
 		listen [::]:80 default_server;
 		server_name _;
-		return 301 https://$host$request_uri;
+		
+		location ~ ^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)$ {
+			default_type text/plain;
+			return 200 "$1.###LETSENCRYPT_ACCOUNT_THUMBPRINT###";
+		}
+		
+		location / {
+			return 301 https://$host$request_uri;
+		}
 	}
 
 ###SERVER_BLOCKS###

@@ -28,7 +28,7 @@ def addLocationBlock(appInfo, confUpstreamBlocks, confLocationBlocks, newInstall
 		}))
 
 
-def buildNginxConf(newInstallDir, appsByDomain):
+def buildNginxConf(newInstallDir, appsByDomain, letsencryptThumbprint):
 	confServerBlocks = []
 	confUpstreamBlocks = []
 
@@ -64,5 +64,6 @@ def buildNginxConf(newInstallDir, appsByDomain):
 
 	return fromTemplate("nginx-conf.template", {
 		"###APP_UPSTREAM_BLOCKS###" : "\n".join(confUpstreamBlocks),
+		"###LETSENCRYPT_ACCOUNT_THUMBPRINT###" : letsencryptThumbprint,
 		"###SERVER_BLOCKS###" : "\n".join(confServerBlocks)
 	})
