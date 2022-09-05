@@ -26,6 +26,9 @@ module.exports = function validateConfig(config, target) {
 			assert(!appNameSet.has(appInfo.app), "Duplicate apps in server block!");
 			assert(!appInfo.app.includes("---"), "App name must not contain three hyphens.");
 			appNameSet.add(appInfo.app);
+			
+			// Validate webPath, don't want weird stuff getting into nginx regex
+			assert(!appInfo.webPath || /^[-_a-zA-Z0-9/]+$/.test(appInfo.webPath), `webPath contained an invalid character: ${appInfo.webPath}`);
 		}
 	}
 
