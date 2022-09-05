@@ -12,6 +12,7 @@ CONTROLSERVER_CONF_PATH = "appcontrol-master.conf.json"
 HOSTSERVER_SCRIPTS_DIR = "appcontrol-host-scripts"
 HOSTSERVER_APPS_DIR = "appcontrol-host-apps"
 HOSTSERVER_CERTS_DIR = "appcontrol-host-certs"
+HOSTSERVER_CONF_PATH = "appcontrol-host.conf.json"
 HOSTSERVER_INSTALLED_APPS_DIR = "/var/lib/" + TOOL_NAME_LOWERCASE + "/installed_apps"
 
 # Misc

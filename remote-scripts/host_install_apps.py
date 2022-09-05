@@ -2,7 +2,7 @@
 import os, json, secrets, shutil, importlib, glob, sys
 import constants
 from pathlib import Path
-from utils import runCommand
+from utils import runCommand, ConfigStore
 from host_utils import fromTemplate, loadRuntimes, getAppInstalledPath, getInstanceCount, getServiceName, formatEnvForSystemd
 from build_nginx_config import buildNginxConf
 
@@ -13,6 +13,9 @@ assert(len(letsencryptThumbprint) > 0)
 
 # Import runtime plugins
 runtimes = loadRuntimes()
+
+# A place to store some local state for host server
+localConf = ConfigStore(constants.HOSTSERVER_CONF_PATH)
 
 # All apps found across all deployments
 allApps = []
@@ -40,9 +43,18 @@ for deploymentName in os.listdir(constants.HOSTSERVER_APPS_DIR):
 			"env" : appMeta.get("env", {})
 		})
 
-# Go through all apps again and determine port ranges and real instance counts
+# We increment the start port by 1000 each time, just in case some old processes were
+# hanging on to ports for a while when shutting down.
 
-portIndex = constants.SERVERAPP_PORT_START
+portIndex = localConf.get("lastPortStart", constants.SERVERAPP_PORT_START - 1000)
+portIndex += 1000
+
+if portIndex >= constants.SERVERAPP_PORT_START + 5000:
+	portIndex = constants.SERVERAPP_PORT_START
+
+localConf.set("lastPortStart", portIndex)
+
+# Go through all apps again and determine port ranges and real instance counts
 
 for appInfo in allApps:
 	if not appInfo["isWebApp"]:

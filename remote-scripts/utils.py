@@ -93,11 +93,11 @@ class ConfigStore:
 		except FileNotFoundError:
 			self.data = {}
 
-	def get(self, keyName):
+	def get(self, keyName, default = None):
 		try:
 			return self.data[keyName]
 		except KeyError:
-			return None
+			return default
 
 	def set(self, keyName, value):
 		self.data[keyName] = value
