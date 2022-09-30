@@ -1,6 +1,7 @@
 const path = require("path");
 const fs = require("fs-extra");
 const constants = require("./constants.js");
+const {validateAppName} = require("./validateConfig.js");
 
 // Read json sync, returning empty object {} if no file existed
 // Also return {} if an empty file
@@ -20,11 +21,6 @@ function readJson(filePath) {
 	}
 	
 	return json;
-}
-
-// lower case and replace any spaces with a hyphen
-function validateAppName(name) {
-	return name.trim().toLowerCase().replace(/\s+/g, "-");
 }
 
 function appNameFromDir(dirPath) {

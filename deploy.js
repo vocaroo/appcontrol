@@ -8,7 +8,7 @@ const tmp = require("tmp");
 const SSH = require("simple-ssh");
 const constants = require("./constants.js");
 const db = require("./db.js");
-const validateConfig = require("./validateConfig.js");
+const {validateConfig, validateAppName} = require("./validateConfig.js");
 const {getReleaseDir, getSSHKeyPath, getControlKeyPath, findProjectName} = require("./utils.js");
 
 const REMOTE_SCRIPT_DIR = "appcontrol-master-scripts"; // directory only present on the control or master server
@@ -213,8 +213,7 @@ function getAppsUsed(servers) {
 
 module.exports = async function(target, releaseNumber = db.get("latestReleaseNum").value()) {
 	// Validation
-	assert(!getDeploymentName(target).includes(" "), "Project name or deploy target must not contain spaces.");
-	assert(!findProjectName().includes("---"), "Project name must not contain three hyphens.");
+	target = validateAppName(target);
 	let validatedConfig = validateConfig(fs.readJsonSync(constants.LOCAL_CONFIG_FILE), target); // This also may set some defaults
 
 	let releaseDir = getReleaseDir(releaseNumber);

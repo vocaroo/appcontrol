@@ -1,14 +1,21 @@
 const assert = require("assert");
-const {validateAppName} = require("./utils.js");
+
+// lower case and replace any spaces with a hyphen
+// used for both app names and also some other things (target name, project name...)
+function validateAppName(name) {
+	name = name.trim().toLowerCase().replace(/\s+/g, "-");
+	assert(/^[a-z][-_a-z0-9]+$/.test(name), `Invalid app name or other name: ${name}`);
+	assert(!name.includes("---"), `App name or other name must not contain three hyphens: ${name}`);
+	return name;
+}
 
 // Validate the deploy config, returning a minimal config with some things removed
 // Used before the config is sent to the control server
 // Validates only the specific target, removes stuff for other targets
-module.exports = function validateConfig(config, target) {
+function validateConfig(config, target) {
 	let validated = {};
 	
-	// Special character used to separate things in names on control server
-	assert(!target.includes("---"), "Deploy target name must not contain three hyphens together");
+	validateAppName(target);
 
 	assert(config.email, "No email in config, required for letsencrypt");
 
@@ -24,7 +31,6 @@ module.exports = function validateConfig(config, target) {
 			appInfo.app = validateAppName(appInfo.app);
 			
 			assert(!appNameSet.has(appInfo.app), "Duplicate apps in server block!");
-			assert(!appInfo.app.includes("---"), "App name must not contain three hyphens.");
 			appNameSet.add(appInfo.app);
 			
 			// Validate webPath, don't want weird stuff getting into nginx regex
@@ -38,3 +44,7 @@ module.exports = function validateConfig(config, target) {
 
 	return validated;
 }
+
+module.exports = {
+	validateConfig, validateAppName
+};
