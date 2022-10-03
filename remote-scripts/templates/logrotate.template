@@ -1,0 +1,11 @@
+###LOG_DIR###/*.log {
+	daily
+	missingok
+	rotate 14
+	compress
+	delaycompress
+	notifempty
+	create 0644 ###USER### ###USER###
+	copytruncate
+	maxage 14
+}

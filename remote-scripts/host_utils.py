@@ -1,4 +1,4 @@
-import os, importlib
+import os, importlib, hashlib
 from pathlib import Path
 import constants
 
@@ -28,6 +28,12 @@ def loadRuntimes():
 def getAppInstalledPath(newInstallDir, appInfo):
 	return newInstallDir + "/" + appInfo["deploymentName"] + "/" + appInfo["appName"]
 
+def getAppLogDir(deploymentName, appName):
+	return constants.HOSTSERVER_APP_LOG_DIR + "/" + deploymentName + "/" + appName
+
+def getAppDataDir(username):
+	return constants.HOSTSERVER_APP_DATA_DIR + "/" + username
+
 def getInstanceCount(instancesPerCPU):
 	return instancesPerCPU * os.cpu_count() if instancesPerCPU > 0 else 1
 
@@ -40,3 +46,14 @@ def formatEnvForSystemd(env):
 	for key, val in env.items():
 		str += f"Environment={key}={val}\n"
 	return str
+
+def genUserName(deploymentName, appName):
+	# Format is (truncated app name)_(truncated hash of ("appname:" + app name))_(truncated hash of project/deploymentname)
+	# Max 32 chars
+	return appName[:10] + "_" + hashlib.sha256(("appname:" + appName).encode()).hexdigest()[:8] + "_" + hashlib.sha256(deploymentName.encode()).hexdigest()[:8]
+
+def genDataGroupUserName(deploymentName, dataGroup):
+	# Format is (truncated group name)_(truncated hash of ("datagroup:" + group name))_(truncated hash of project/deploymentname)
+	# Max 32 chars
+	# "appname:" / "datagroup:" strings prevents any clashes with app names and data groups.
+	return dataGroup[:10] + "_" + hashlib.sha256(("datagroup:" + dataGroup).encode()).hexdigest()[:8] + "_" + hashlib.sha256(deploymentName.encode()).hexdigest()[:8]

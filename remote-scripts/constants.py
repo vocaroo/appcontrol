@@ -14,6 +14,8 @@ HOSTSERVER_APPS_DIR = "appcontrol-host-apps"
 HOSTSERVER_CERTS_DIR = "appcontrol-host-certs"
 HOSTSERVER_CONF_PATH = "appcontrol-host.conf.json"
 HOSTSERVER_INSTALLED_APPS_DIR = "/var/lib/" + TOOL_NAME_LOWERCASE + "/installed_apps"
+HOSTSERVER_APP_DATA_DIR = "/var/lib/" + TOOL_NAME_LOWERCASE + "/appdata"
+HOSTSERVER_APP_LOG_DIR = "/var/log/" + TOOL_NAME_LOWERCASE
 
 # Misc
 CONTROL_KEY_NAME = "control-key"

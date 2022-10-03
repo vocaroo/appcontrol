@@ -181,7 +181,7 @@ async def deploy():
 				appMeta["deploymentName"] = deploymentName
 
 				# Copy certain keys from appInfo/config only if set
-				for keyName in ["domain", "webPath", "instancesPerCPU"]:
+				for keyName in ["domain", "webPath", "instancesPerCPU", "dataGroup"]:
 					if keyName in appInfo:
 						appMeta[keyName] = appInfo[keyName]
 

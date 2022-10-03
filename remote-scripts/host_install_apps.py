@@ -1,9 +1,9 @@
 # Install all apps that have been deployed to this server
-import os, json, secrets, shutil, importlib, glob, sys
+import os, json, secrets, shutil, importlib, glob, sys, pwd
 import constants
 from pathlib import Path
 from utils import runCommand, ConfigStore
-from host_utils import fromTemplate, loadRuntimes, getAppInstalledPath, getInstanceCount, getServiceName, formatEnvForSystemd
+from host_utils import fromTemplate, loadRuntimes, getAppInstalledPath, getInstanceCount, getServiceName, formatEnvForSystemd, genUserName, genDataGroupUserName, getAppLogDir, getAppDataDir
 from build_nginx_config import buildNginxConf
 
 print("Will install apps on this server!")
@@ -31,6 +31,11 @@ for deploymentName in os.listdir(constants.HOSTSERVER_APPS_DIR):
 		if "runtime" in appMeta:
 			usedRuntimes.add(appMeta["runtime"])
 
+		if "dataGroup" in appMeta:
+			username = genDataGroupUserName(deploymentName, appMeta["dataGroup"])
+		else:
+			username = genUserName(deploymentName, appName)
+		
 		allApps.append({
 			"appName" : appName,
 			"deploymentName" : deploymentName,
@@ -40,8 +45,19 @@ for deploymentName in os.listdir(constants.HOSTSERVER_APPS_DIR):
 			"isWebApp" : appMeta["isWebApp"],
 			"runtime" : appMeta.get("runtime", None),
 			"main" : appMeta.get("main", None),
-			"env" : appMeta.get("env", {})
+			"env" : appMeta.get("env", {}),
+			"username" : username,
+			"dataDir" : getAppDataDir(username),
+			"logDir" : getAppLogDir(deploymentName, appName)
 		})
+
+# Validate: Check that no two apps share the same domain and webPath
+domainAndWebPathSet = set()
+
+for appInfo in allApps:
+	hash = str(appInfo["domain"]) + appInfo["webPath"]
+	assert hash not in domainAndWebPathSet, ("Same domain and webPath in more than one app: " + appInfo["appName"])
+	domainAndWebPathSet.add(hash)
 
 # We increment the start port by 1000 each time, just in case some old processes were
 # hanging on to ports for a while when shutting down.
@@ -55,21 +71,37 @@ if portIndex >= constants.SERVERAPP_PORT_START + 5000:
 localConf.set("lastPortStart", portIndex)
 
 # Go through all apps again and determine port ranges and real instance counts
+# Also create users etc
 
 for appInfo in allApps:
 	if not appInfo["isWebApp"]:
+		# Ports
 		instanceCount = getInstanceCount(appInfo["instancesPerCPU"])
 		appInfo["instanceCount"] = instanceCount
 		appInfo["portRangeStart"] = portIndex
 		portIndex += instanceCount
+		
+		# Create users for server apps only
+		# add user if doesn't exist already
+		try:
+			pwd.getpwnam(appInfo["username"])
+		except KeyError:
+			runCommand(["useradd", appInfo["username"]])
+		
+		# Create log directory
+		os.makedirs(appInfo["logDir"], exist_ok = True)
+		shutil.chown(appInfo["logDir"], appInfo["username"], appInfo["username"])
+		
+		# Create logrotate config for this app
+		Path("/etc/logrotate.d/" + constants.TOOL_NAME_LOWERCASE + "." + appInfo["deploymentName"] + "." + appInfo["appName"]).write_text(fromTemplate("logrotate.template", {
+			"###LOG_DIR###" : appInfo["logDir"],
+			"###USER###" : appInfo["username"]
+		}))
 
-# Validate: Check that no two apps share the same domain and webPath
-domainAndWebPathSet = set()
+		# Create data dir, with correct permissions
+		os.makedirs(appInfo["dataDir"], mode=0o755, exist_ok = True)
+		shutil.chown(appInfo["dataDir"], appInfo["username"], appInfo["username"])
 
-for appInfo in allApps:
-	hash = str(appInfo["domain"]) + appInfo["webPath"]
-	assert hash not in domainAndWebPathSet, ("Same domain and webPath in more than one app: " + appInfo["appName"])
-	domainAndWebPathSet.add(hash)
 
 # return (name, version) from a string like "node:16". version may be None.
 def splitRuntimeVersion(runtimeName):
@@ -135,7 +167,10 @@ for appInfo in allApps:
 			mainScriptPath = workingDirectory + "/" + appInfo["main"]
 			
 			systemdConfig = fromTemplate("systemd-service.template", {
+				"###USER###" : appInfo["username"],
 				"###PORT###" : str(appInfo["portRangeStart"] + i),
+				"###APP_DATA_DIR###" : appInfo["dataDir"],
+				"###APP_LOG_DIR###" : appInfo["logDir"],
 				"###ENVIRONMENT###" : formatEnvForSystemd({
 					# Use env vars from the runtime and also the app.json
 					# app.json having precedence

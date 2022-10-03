@@ -2,7 +2,10 @@
 After=network.target
 
 [Service]
+User=###USER###
 Environment=PORT=###PORT###
+Environment=APP_DATA_DIR=###APP_DATA_DIR###
+Environment=APP_LOG_DIR=###APP_LOG_DIR###
 ###ENVIRONMENT###
 Type=simple
 WorkingDirectory=###WORKING_DIRECTORY###
