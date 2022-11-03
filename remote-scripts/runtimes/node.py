@@ -1,28 +1,32 @@
 import os
 from utils import runCommand
 
+N_PATH = "/usr/local/bin/n"
+
 class Runtime:
-	# if version is given, will install that. Otherwise will install latest.
-	def install(self, version = None):
-		# Install nvm if not already
-		if not os.path.isdir(".nvm"):
-			runCommand(["curl", "-o", "nvm-install.sh", "https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh"])
-			runCommand(["bash", "nvm-install.sh"])
+	# if version is given, will install that. Otherwise if None, will install latest.
+	def install(self, version):
+				
+		# Install n if not already
+		if not os.path.isdir(N_PATH):
+			runCommand(["curl", "-L", "https://raw.githubusercontent.com/tj/n/master/bin/n", "-o", N_PATH])
+			os.chmod(N_PATH, 0o755)
 		
 		# Install a desired node version, if not already
 		if version:
-			if runCommand(["bash", "-i", "-c", "nvm", "which", str(version)], returnCode = True) != 0:
-				runCommand(["bash", "-i", "-c", "nvm", "install", str(version)])
+			if runCommand(["n", "which", str(version)], returnCode = True) != 0:
+				runCommand(["n", "install", str(version)])
 		else:
 			# just ensure latest is installed
-			runCommand(["bash", "-i", "-c", "nvm", "install", "node"])
+			runCommand(["n", "install", "latest"])
 	
-	def getEnv(self, version = None):
+	def getEnv(self, version):
 		return {
-			"NODE_ENV" : "production",
-			"NODE_VERSION" : (version if version else "node") # Default to latest node if no version given
+			"NODE_ENV" : "production"
 		}
 	
-	def getRunCommand(self, mainScriptPath, version = None):
-		#return f"nvm run {version} {mainScriptPath}"
-		return f"/root/.nvm/nvm-exec node {mainScriptPath}"
+	def getRunCommand(self, mainScriptPath, version):
+		if version == None:
+			version = "latest"
+		
+		return f"n run {version} {mainScriptPath}"
