@@ -240,6 +240,15 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 
 	// Sync remote scripts to control server
 	await syncRemoteScripts(controlServer.ip);
+	
+	// Init control server
+	try {
+		console.log("Control server initialising...");
+		await runRemoteScript(controlServer.ip, "control_init.py");
+	} catch (error) {
+		console.log(error.message);
+		console.log("Control server init failed.");
+	}
 
 	// Get all apps that are used by this deploy target
 	let appsUsed = getAppsUsed(servers);

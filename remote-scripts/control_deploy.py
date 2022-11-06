@@ -1,11 +1,9 @@
 import sys, json, asyncio, os, re, tempfile, shutil
 import constants
-from utils import getProjectNameAndTarget, rsync, getDeploymentKey, runOnAllHosts, runCommand, ConfigStore, hostsFromServers
-from control_utils import readDeployConfigServers, getCertPrivkeyPath, getCertFullchainPath, getAllDomains, getDomainsInServer
+from utils import getProjectNameAndTarget, rsync, getDeploymentKey, runCommand, ConfigStore, hostsFromServers
+from control_utils import readDeployConfigServers, getCertPrivkeyPath, getCertFullchainPath, getAllDomains, getDomainsInServer, runOnAllHosts
 
 ACME_SH_PATH = "/root/.acme.sh/acme.sh"
-
-print("Initialising control server...")
 
 deploymentName = sys.argv[1]
 assert(len(deploymentName) > 0)

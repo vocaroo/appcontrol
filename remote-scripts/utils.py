@@ -1,6 +1,5 @@
 import asyncio, sys, subprocess, json, os, re
 import constants
-from pssh.clients import ParallelSSHClient
 
 def getProjectNameAndTarget(deploymentName):
 	return re.match("^(.+)---(.+)$", deploymentName).groups()
@@ -51,36 +50,6 @@ async def rsync(host, keyPath, sourceDir, destDir, extraArgs = []):
 		+ extraArgs
 		+ [sourceDir, dest]
 	)
-
-def runCommandOnAllHosts(hosts, deploymentName, commandStr):
-	# We might want timeout and retry in future, but let's see if it's actually necessary.
-	# Since these connections are between remote servers it should be rare.
-	client = ParallelSSHClient(hosts, pkey = constants.CONTROLSERVER_DEPLOYMENTS_DIR + "/" + deploymentName + "/control-key")
-	outputs = client.run_command(commandStr)
-
-	client.join()
-
-	failed = False
-
-	for output in outputs:
-		if output.exit_code != 0:
-			print("Server command failed.")
-			print("Command exit code: " + str(output.exit_code))
-			print("Command stdout: " + "".join(output.stdout))
-			print("Command stderr: " + "".join(output.stderr))
-			failed = True
-
-	if failed:
-		print("One or more server commands failed.")
-		return False
-	
-	return True
-	
-# Run a script across *all* hosts
-# Also exits if anything fails, this is currently assumed to only be used by deploy script
-def runOnAllHosts(hosts, deploymentName, scriptName):
-	if not runCommandOnAllHosts(hosts, deploymentName, "python3 -B " + constants.HOSTSERVER_SCRIPTS_DIR + "/" + scriptName):
-		sys.exit(1)
 
 # Simple on disk key-value store
 class ConfigStore:

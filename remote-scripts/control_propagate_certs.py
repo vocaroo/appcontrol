@@ -1,8 +1,8 @@
 import os, asyncio
 from datetime import datetime
 import constants
-from control_utils import readDeployConfigServers, getCertPrivkeyPath, getCertFullchainPath, getDomainsInServer
-from utils import rsync, getDeploymentKey, runCommandOnAllHosts, hostsFromServers
+from control_utils import readDeployConfigServers, getCertPrivkeyPath, getCertFullchainPath, getDomainsInServer, runCommandOnAllHosts
+from utils import rsync, getDeploymentKey, hostsFromServers
 
 print("Propagating SSL certs... " + datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
 

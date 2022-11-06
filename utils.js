@@ -39,7 +39,7 @@ function getReleaseDir(releaseNumber) {
 // Could check config for a ssh key path too, before falling back to .ssh dir
 // should probably throw an error if none exist
 function getSSHKeyPath() {
-	return path.join(process.env.HOME, ".ssh/id_rsa");
+	return path.join(process.env.HOME, ".ssh/id_ed25519");
 }
 
 // a key used by control server to access other servers
