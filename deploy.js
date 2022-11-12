@@ -116,7 +116,7 @@ function ensureControlKey(target) {
 		if (error.code == "ENOENT") {
 			// clear copied status flags in case the key for this target has been deleted and this is a new key
 			// new key will then be copied on next deploy
-			db.set(`controKeyCopiedStatus.${target}`, {})
+			db.set(`controlKeyCopiedStatus.${target}`, {})
 				.write();
 
 			console.log(`Control key did not exist for ${target}, creating...`);
@@ -133,7 +133,7 @@ function hostToProp(host) { // turn an IP address into a string that can be used
 }
 
 async function copyControlKeyToHost(target, host) {
-	if (db.get(`controKeyCopiedStatus.${target}.${hostToProp(host)}`).value()) {
+	if (db.get(`controlKeyCopiedStatus.${target}.${hostToProp(host)}`).value()) {
 		return; // Already copied for this target
 	}
 
@@ -149,7 +149,7 @@ async function copyControlKeyToHost(target, host) {
 	//printStdLines(stderr.toString());
 
 	console.log("Copied key to", host);
-	db.set(`controKeyCopiedStatus.${target}.${hostToProp(host)}`, true)
+	db.set(`controlKeyCopiedStatus.${target}.${hostToProp(host)}`, true)
 		.write();
 }
 
@@ -243,15 +243,20 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 	await syncRemoteScripts(controlServer.ip);
 	
 	// Init control server
-	try {
-		let email = conf.get("email").value();
-		assert(email, "No email defined in conf");
-		
-		console.log("Control server initialising...");
-		await runRemoteScript(controlServer.ip, "control_init.py " + email);
-	} catch (error) {
-		console.log(error.message);
-		console.log("Control server init failed.");
+	if (!conf.get(`controlServerInitStatus.${hostToProp(controlServer.ip)}`).value()) {
+		try {
+			let email = conf.get("email").value();
+			assert(email, "No email defined in conf");
+			
+			console.log("Control server initialising...");
+			await runRemoteScript(controlServer.ip, "control_init.py " + email);
+			
+			conf.set(`controlServerInitStatus.${hostToProp(controlServer.ip)}`, true)
+				.write();
+		} catch (error) {
+			console.log(error.message);
+			console.log("Control server init failed.");
+		}
 	}
 
 	// Get all apps that are used by this deploy target
