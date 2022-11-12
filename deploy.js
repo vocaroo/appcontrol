@@ -8,6 +8,7 @@ const tmp = require("tmp");
 const SSH = require("simple-ssh");
 const constants = require("./constants.js");
 const db = require("./db.js");
+const conf = require("./conf.js");
 const {validateConfig, validateAppName} = require("./validateConfig.js");
 const {getReleaseDir, getSSHKeyPath, getControlKeyPath, findProjectName} = require("./utils.js");
 
@@ -243,8 +244,11 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 	
 	// Init control server
 	try {
+		let email = conf.get("email").value();
+		assert(email, "No email defined in conf");
+		
 		console.log("Control server initialising...");
-		await runRemoteScript(controlServer.ip, "control_init.py");
+		await runRemoteScript(controlServer.ip, "control_init.py " + email);
 	} catch (error) {
 		console.log(error.message);
 		console.log("Control server init failed.");

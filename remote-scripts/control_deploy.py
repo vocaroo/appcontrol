@@ -1,9 +1,7 @@
-import sys, json, asyncio, os, re, tempfile, shutil
+import sys, json, asyncio, os, tempfile, shutil
 import constants
 from utils import getProjectNameAndTarget, rsync, getDeploymentKey, runCommand, ConfigStore, hostsFromServers
 from control_utils import readDeployConfigServers, getCertPrivkeyPath, getCertFullchainPath, getAllDomains, getDomainsInServer, runOnAllHosts
-
-ACME_SH_PATH = "/root/.acme.sh/acme.sh"
 
 deploymentName = sys.argv[1]
 assert(len(deploymentName) > 0)
@@ -16,8 +14,6 @@ print("full deployment name:", deploymentName)
 print("projectName:", projectName)
 print("deployTarget:", deployTarget)
 
-os.makedirs(constants.CONTROLSERVER_CERTS_DIR, exist_ok = True)
-
 # A place to store some local state for control server
 localConf = ConfigStore(constants.CONTROLSERVER_CONF_PATH)
 
@@ -25,18 +21,6 @@ localConf = ConfigStore(constants.CONTROLSERVER_CONF_PATH)
 # First, get the host IPs
 deployConfig, servers = readDeployConfigServers(deploymentName)
 hosts = hostsFromServers(servers)
-
-# Write cron job to propagate certs
-def writeCertPropagationCron():
-	cronFilePath = "/etc/cron.daily/" + constants.TOOL_NAME_LOWERCASE + "-propagate-certs"
-	
-	with open(cronFilePath, "w") as fp:
-		certPropagateScriptPath = constants.CONTROLSERVER_SCRIPTS_DIR + "/control_propagate_certs.py"
-		fp.write("#!/bin/sh\ncd /root && python3 " + certPropagateScriptPath + " >> /var/log/" + constants.TOOL_NAME_LOWERCASE + "-propagate-certs.log")
-	
-	os.chmod(cronFilePath, 0o755)
-
-writeCertPropagationCron()
 
 print("Deploying to hosts", hosts)
 
@@ -46,35 +30,7 @@ with open(constants.KNOWN_HOSTS_PATH, "w") as fp:
 		assert ("fingerprint" in server and len(server["fingerprint"]) > 0), "No fingerprint in server block"
 		fp.write(server["ip"] + " ssh-ed25519 " + server["fingerprint"] + "\n")
 
-email = deployConfig["email"]
-
-# Install and set up acme.sh if not already
-if not os.path.isdir(".acme.sh"):
-	print("Installing acme.sh")
-	print( runCommand(["wget", "-O", "/tmp/acme.sh", "https://raw.githubusercontent.com/acmesh-official/acme.sh/master/acme.sh"]) )
-	print( runCommand(["sh", "/tmp/acme.sh", "--install-online", "-m", email]) )
-	assert os.path.isdir(".acme.sh")
-	print( runCommand([ACME_SH_PATH, "--set-default-ca", "--server", "letsencrypt"]) )
-	registerAccountStdout = runCommand([ACME_SH_PATH, "--register-account"])
-	print( registerAccountStdout )
-	thumbprint = re.search(r"ACCOUNT_THUMBPRINT='([-_a-zA-Z0-9]+)'", registerAccountStdout).group(1)
-	print(f"Letsencrypt account thumbprint [{thumbprint}]")
-	# Save letsencrypt account thumbprint
-	localConf.set("letsencryptThumbprint", thumbprint)
-
-assert localConf.get("letsencryptThumbprint"), "No letsencrypt thumbprint found"
-
-# Update letsencrypt account email if it has changed
-if email != localConf.get("email"):
-	print("Email changed from " + str(localConf.get("email")) + " to " + email + ", setting new letsencrypt email...")
-	runCommand([ACME_SH_PATH, "-m", email, "--update-account"])
-	localConf.set("email", email)
-
-# One further question --- Do we need to define control server separate from appcontrol.json ??? Like email and stuff... IP and fingerprint....????
-# A "default_group" that contains email in user dir (~/.appcontrol/default_group)
-# * Issue all necessary SSL certs here on control server (get set of all domains from deployment)
-#       acme.sh --issue -d appcontrol-testapp-client-staging.xzist.org --stateless
-
+# Issue all necessary SSL certs here on control server (get set of all domains from deployment)
 # Get all domains for this deployment
 
 domainSet = getAllDomains(servers)
@@ -86,7 +42,7 @@ def issueCertsDNS(domainSet):
 	dnsHookName = letsencryptConfig["dns_hook"]
 	challengeAliasDomain = letsencryptConfig.get("challenge_alias_domain") # Can be omitted, so will be None
 
-	acmeShIssueCommand = [ACME_SH_PATH, "--issue", "--dns", dnsHookName]
+	acmeShIssueCommand = [constants.ACME_SH_PATH, "--issue", "--dns", dnsHookName]
 
 	if challengeAliasDomain:
 		acmeShIssueCommand.extend(["--challenge-alias", challengeAliasDomain])
@@ -100,13 +56,13 @@ def issueCertsDNS(domainSet):
 
 		# Install the certs to appcontrol-master-certs dir
 		print(runCommand([
-			ACME_SH_PATH, "--install-cert", "-d", domain,
+			constants.ACME_SH_PATH, "--install-cert", "-d", domain,
 			"--key-file", getCertPrivkeyPath(domain),
 			"--fullchain-file", getCertFullchainPath(domain)
 		]))
 
 def issueCertsHTTP(domainSet):
-	acmeShIssueCommand = [ACME_SH_PATH, "--issue", "--stateless"]
+	acmeShIssueCommand = [constants.ACME_SH_PATH, "--issue", "--stateless"]
 	
 	for domain in domainSet:
 		# Issue cert for each domain separately
@@ -117,7 +73,7 @@ def issueCertsHTTP(domainSet):
 
 		# Install the certs to appcontrol-master-certs dir
 		print(runCommand([
-			ACME_SH_PATH, "--install-cert", "-d", domain,
+			constants.ACME_SH_PATH, "--install-cert", "-d", domain,
 			"--key-file", getCertPrivkeyPath(domain),
 			"--fullchain-file", getCertFullchainPath(domain)
 		]))

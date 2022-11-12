@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 const yargs = require("yargs/yargs");
+const readlineSync = require("readline-sync");
 const findApps = require("./findApps.js");
 const createRelease = require("./createRelease.js");
 const deploy = require("./deploy.js");
 const getFingerprint = require("./getFingerprint.js");
+const conf = require("./conf.js");
 const {findProjectName} = require("./utils.js");
 
 yargs(process.argv.slice(2))
@@ -26,6 +28,16 @@ yargs(process.argv.slice(2))
 			choices : ["staging", "production"]
 		})
 	}, argv => {
+		if (!conf.get("email").value()) {
+			let email = null;
+			
+			while (!email) {
+				email = readlineSync.question("Enter an email address for letsencrypt notifications: ");
+			}
+			
+			conf.set("email", email).write();
+		}
+		
 		console.log(`Deploying to ${argv.target}`);
 		deploy(argv.target);
 	})

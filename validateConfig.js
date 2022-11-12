@@ -17,8 +17,6 @@ function validateConfig(config, target) {
 	
 	validateAppName(target);
 
-	assert(config.email, "No email in config, required for letsencrypt");
-
 	// Validation of all servers in a target
 	// Check for duplicate app names within a server
 	// Set some defaults
@@ -38,7 +36,6 @@ function validateConfig(config, target) {
 		}
 	}
 
-	validated.email = config.email;
 	validated.letsencrypt = config.letsencrypt;
 	validated[target] = config[target]; // Copy only the given target
 

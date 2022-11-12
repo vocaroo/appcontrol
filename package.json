@@ -8,6 +8,7 @@
   "dependencies": {
     "fs-extra": "^9.0.1",
     "lowdb": "^1.0.0",
+    "readline-sync": "^1.4.10",
     "simple-ssh": "^1.0.0",
     "tmp": "^0.2.1",
     "yargs": "^16.2.0"
