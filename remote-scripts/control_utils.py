@@ -1,4 +1,4 @@
-import json
+import json, os
 import constants
 from utils import getProjectNameAndTarget
 from pssh.clients import ParallelSSHClient
@@ -35,6 +35,30 @@ def readDeployConfigServers(deploymentName):
 		servers = deployConfig[deployTarget]
 	
 	return (deployConfig, servers)
+
+def getAllDeployments():
+	return os.listdir(constants.CONTROLSERVER_DEPLOYMENTS_DIR)
+
+# Get all server blocks from all deployments
+def getAllDeploymentServers():
+	allServers = []
+	deployments = getAllDeployments()
+	
+	for deploymentName in deployments:
+		deployConfig, servers = readDeployConfigServers(deploymentName)		
+		allServers.extend(servers)
+	
+	return allServers
+
+# Write correct host fingerprints to known_hosts
+# This must be done for *all* deployments on this control server, not just the one that is currently being deployed.
+def writeKnownHosts():
+	servers = getAllDeploymentServers()
+	
+	with open(constants.KNOWN_HOSTS_PATH, "w") as fp:
+		for server in servers:
+			assert ("fingerprint" in server and len(server["fingerprint"]) > 0), "No fingerprint in server block"
+			fp.write(server["ip"] + " ssh-ed25519 " + server["fingerprint"] + "\n")
 
 def runCommandOnAllHosts(hosts, deploymentName, commandStr):
 	# We might want timeout and retry in future, but let's see if it's actually necessary.

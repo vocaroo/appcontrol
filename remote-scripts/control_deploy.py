@@ -1,7 +1,7 @@
 import sys, json, asyncio, os, tempfile, shutil
 import constants
 from utils import getProjectNameAndTarget, rsync, getDeploymentKey, runCommand, ConfigStore, hostsFromServers
-from control_utils import readDeployConfigServers, getCertPrivkeyPath, getCertFullchainPath, getAllDomains, getDomainsInServer, runOnAllHosts
+from control_utils import readDeployConfigServers, getCertPrivkeyPath, getCertFullchainPath, getAllDomains, getDomainsInServer, runOnAllHosts, writeKnownHosts
 
 deploymentName = sys.argv[1]
 assert(len(deploymentName) > 0)
@@ -24,11 +24,8 @@ hosts = hostsFromServers(servers)
 
 print("Deploying to hosts", hosts)
 
-# Write correct host fingerprints to known_hosts
-with open(constants.KNOWN_HOSTS_PATH, "w") as fp:
-	for server in servers:
-		assert ("fingerprint" in server and len(server["fingerprint"]) > 0), "No fingerprint in server block"
-		fp.write(server["ip"] + " ssh-ed25519 " + server["fingerprint"] + "\n")
+# Write correct host fingerprints to known_hosts, for *all* deployments on this control server
+writeKnownHosts()
 
 # Issue all necessary SSL certs here on control server (get set of all domains from deployment)
 # Get all domains for this deployment

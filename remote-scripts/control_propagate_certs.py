@@ -1,12 +1,12 @@
 import os, asyncio
 from datetime import datetime
 import constants
-from control_utils import readDeployConfigServers, getCertPrivkeyPath, getCertFullchainPath, getDomainsInServer, runCommandOnAllHosts
+from control_utils import readDeployConfigServers, getCertPrivkeyPath, getCertFullchainPath, getDomainsInServer, runCommandOnAllHosts, getAllDeployments
 from utils import rsync, getDeploymentKey, hostsFromServers
 
 print("Propagating SSL certs... " + datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
 
-deployments = os.listdir(constants.CONTROLSERVER_DEPLOYMENTS_DIR)
+deployments = getAllDeployments()
 
 # This might do duplicate work if the same domain name is used on the same host by multiple deployments
 # but that's probably okay... for now.
