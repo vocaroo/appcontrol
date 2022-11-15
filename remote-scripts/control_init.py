@@ -13,11 +13,9 @@ localConf = ConfigStore(constants.CONTROLSERVER_CONF_PATH)
 print("Initialising control server...")
 
 # Initial setup and install of some things on this master server
-if localConf.get("setup") == None:
-	runCommand(["apt", "update"])
-	runCommand(["apt", "install", "-y", "python3-pip"])
-	runCommand([sys.executable, "-m", "pip", "install", "parallel-ssh"])
-	localConf.set("setup", True)
+runCommand(["apt", "update"])
+runCommand(["apt", "install", "-y", "python3-pip"])
+runCommand([sys.executable, "-m", "pip", "install", "parallel-ssh"])
 
 # Write cron job to propagate certs
 def writeCertPropagationCron():
@@ -53,3 +51,6 @@ if email != localConf.get("email"):
 	print("Email changed from " + str(localConf.get("email")) + " to " + email + ", setting new letsencrypt email...")
 	runCommand([constants.ACME_SH_PATH, "-m", email, "--update-account"])
 	localConf.set("email", email)
+
+# Everything succeeded...
+localConf.set("initialised", True)

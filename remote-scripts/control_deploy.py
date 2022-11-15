@@ -1,6 +1,13 @@
 import sys, json, asyncio, os, tempfile, shutil
 import constants
-from utils import getProjectNameAndTarget, rsync, getDeploymentKey, runCommand, ConfigStore, hostsFromServers
+from utils import ConfigStore
+
+# A place to store some local state for control server
+localConf = ConfigStore(constants.CONTROLSERVER_CONF_PATH)
+# Check this before we import anything that uses non-standard modules (i.e. parallel-ssh)
+assert localConf.get("initialised") != None, "Control server was not correctly initialised. Perhaps the reset command needs to be called."
+
+from utils import getProjectNameAndTarget, rsync, getDeploymentKey, runCommand, hostsFromServers
 from control_utils import readDeployConfigServers, getCertPrivkeyPath, getCertFullchainPath, getAllDomains, getDomainsInServer, runOnAllHosts, writeKnownHosts
 
 deploymentName = sys.argv[1]
@@ -13,9 +20,6 @@ print("Deploying from control server...")
 print("full deployment name:", deploymentName)
 print("projectName:", projectName)
 print("deployTarget:", deployTarget)
-
-# A place to store some local state for control server
-localConf = ConfigStore(constants.CONTROLSERVER_CONF_PATH)
 
 # Must deploy scripts (from working directory) to all other servers in this deploy target (to their local ~/appcontrol dir)
 # First, get the host IPs
