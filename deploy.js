@@ -9,8 +9,9 @@ const SSH = require("simple-ssh");
 const constants = require("./constants.js");
 const db = require("./db.js");
 const conf = require("./conf.js");
+const resetServer = require("./resetServer.js");
 const {validateConfig, validateAppName} = require("./validateConfig.js");
-const {getReleaseDir, getSSHKeyPath, getControlKeyPath, findProjectName} = require("./utils.js");
+const {getReleaseDir, getSSHKeyPath, getControlKeyPath, findProjectName, hostToProp} = require("./utils.js");
 
 const REMOTE_SCRIPT_DIR = "appcontrol-master-scripts"; // directory only present on the control or master server
 const REMOTE_DEPLOYMENTS_DIR = "appcontrol-master-deployments";
@@ -128,17 +129,13 @@ function ensureControlKey(target) {
 	}
 }
 
-function hostToProp(host) { // turn an IP address into a string that can be used as a lowdb object property
-	return host.replace(/\./g, "-").replace(/:/g, "_");
-}
-
 async function copyControlKeyToHost(target, host) {
 	if (db.get(`controlKeyCopiedStatus.${target}.${hostToProp(host)}`).value()) {
 		return; // Already copied for this target
 	}
 
 	let keyPath = getControlKeyPath(target);
-
+	
 	// This is untested when getSSHKeyPath is anything other than the default ID
 	// -f is required due to some... issues.... with the key not getting copied
 	// (possibly due to ssh seeing that the IdentityFile works for login, despite the key we want to copy being different. not sure about that though!)
@@ -226,9 +223,23 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 		console.log(`No servers for "${target}" found in config, nothing to do.`);
 		return;
 	}
+	
+	// Check that fingerprint didn't change
+	for (let server of servers) {
+		let lastFingerprint = db.get(`lastFingerprints.${target}.${hostToProp(server.ip)}`).value();
+		
+		if (lastFingerprint && server.fingerprint != lastFingerprint) {
+			// It changed.
+			console.log(`Fingerprint for server ${server.ip} changed. Will re-init...`);
+			resetServer(server.ip);
+		}
+		
+		db.set(`lastFingerprints.${target}.${hostToProp(server.ip)}`, server.fingerprint)
+			.write();
+	}
 
 	let controlServer = servers[0];
-
+	
 	// Ensure there is a ssh key for the control server
 	ensureControlKey(target);
 

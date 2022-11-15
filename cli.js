@@ -5,6 +5,7 @@ const findApps = require("./findApps.js");
 const createRelease = require("./createRelease.js");
 const deploy = require("./deploy.js");
 const getFingerprint = require("./getFingerprint.js");
+const resetServer = require("./resetServer.js");
 const conf = require("./conf.js");
 const {findProjectName} = require("./utils.js");
 
@@ -44,5 +45,12 @@ yargs(process.argv.slice(2))
 	.command("get-fingerprint <hostIP>", "Get the ed25519 fingerprint of the specified host", {}, (argv) => {
 		getFingerprint(argv.hostIP);
 	})
+	.command("reset <hostIP>", "This must be called if a host or control server has been reinstalled or otherwise had its data removed", {}, (argv) => {
+		resetServer(argv.hostIP);
+		// alert that new fingerprint should also be set
+		console.log("This host has been reset. Run deploy now.");
+		console.log("If the server OS was reinstalled remember to update the fingerprint in the config file wherever necessary or deployment will fail.")
+	})
+	.demandCommand(1, "Hey there, how are you?")
 	.help()
 	.argv;

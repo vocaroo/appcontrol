@@ -48,6 +48,10 @@ function getControlKeyPath(target) {
 	return constants.CONTROL_KEY_DIR + "/" + target;
 }
 
+function hostToProp(host) { // turn an IP address into a string that can be used as a lowdb object property
+	return host.replace(/\./g, "-").replace(/:/g, "_");
+}
+
 module.exports = {
 	readJson,
 	validateAppName,
@@ -55,5 +59,6 @@ module.exports = {
 	findProjectName,
 	getReleaseDir,
 	getSSHKeyPath,
-	getControlKeyPath
+	getControlKeyPath,
+	hostToProp
 };
