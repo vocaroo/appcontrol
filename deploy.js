@@ -216,6 +216,9 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 
 	let releaseDir = getReleaseDir(releaseNumber);
 	console.log(`Deploying release number ${releaseNumber} to ${target}...`);
+	
+	let email = conf.get("email").value();
+	assert(email, "No email defined in conf");
 
 	let servers = validatedConfig[target];
 
@@ -255,10 +258,7 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 	
 	// Init control server
 	if (!conf.get(`controlServerInitStatus.${hostToProp(controlServer.ip)}`).value()) {
-		try {
-			let email = conf.get("email").value();
-			assert(email, "No email defined in conf");
-			
+		try {			
 			console.log("Control server initialising...");
 			await runRemoteScript(controlServer.ip, "control_init.py " + email);
 			
@@ -289,7 +289,7 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 
 	// Init control server
 	try {
-		await runRemoteScript(controlServer.ip, "control_deploy.py " + getDeploymentName(target));
+		await runRemoteScript(controlServer.ip, "control_deploy.py " + email + " " + getDeploymentName(target));
 	} catch (error) {
 		console.log(error.message); // Don't want to display the full stack, since the error was server side
 		console.log("Control server deploy failed.");

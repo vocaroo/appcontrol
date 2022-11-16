@@ -10,7 +10,9 @@ assert localConf.get("initialised") != None, "Control server was not correctly i
 from utils import getProjectNameAndTarget, rsync, getDeploymentKey, runCommand, hostsFromServers
 from control_utils import readDeployConfigServers, getCertPrivkeyPath, getCertFullchainPath, getAllDomains, getDomainsInServer, runOnAllHosts, writeKnownHosts
 
-deploymentName = sys.argv[1]
+email = sys.argv[1]
+deploymentName = sys.argv[2]
+assert(len(email) > 0)
 assert(len(deploymentName) > 0)
 
 # e.g. MyProject, production
@@ -20,6 +22,12 @@ print("Deploying from control server...")
 print("full deployment name:", deploymentName)
 print("projectName:", projectName)
 print("deployTarget:", deployTarget)
+
+# Update letsencrypt account email if it has changed
+if email != localConf.get("email"):
+	print("Email changed from " + str(localConf.get("email")) + " to " + email + ", setting new letsencrypt email...")
+	runCommand([constants.ACME_SH_PATH, "-m", email, "--update-account"])
+	localConf.set("email", email)
 
 # Must deploy scripts (from working directory) to all other servers in this deploy target (to their local ~/appcontrol dir)
 # First, get the host IPs

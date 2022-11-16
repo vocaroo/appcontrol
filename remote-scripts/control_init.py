@@ -46,11 +46,5 @@ if not os.path.isdir(".acme.sh"):
 
 assert localConf.get("letsencryptThumbprint"), "No letsencrypt thumbprint found"
 
-# Update letsencrypt account email if it has changed
-if email != localConf.get("email"):
-	print("Email changed from " + str(localConf.get("email")) + " to " + email + ", setting new letsencrypt email...")
-	runCommand([constants.ACME_SH_PATH, "-m", email, "--update-account"])
-	localConf.set("email", email)
-
 # Everything succeeded...
 localConf.set("initialised", True)
