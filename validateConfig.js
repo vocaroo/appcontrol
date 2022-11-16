@@ -16,6 +16,8 @@ function validateConfig(config, target) {
 	let validated = {};
 	
 	validateAppName(target);
+	
+	assert(target in config, `Target "${target}" not found`);
 
 	// Validation of all servers in a target
 	// Check for duplicate app names within a server

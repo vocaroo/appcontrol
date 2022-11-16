@@ -23,10 +23,9 @@ yargs(process.argv.slice(2))
 		// store in ".appcontrol" in current dir
 		createRelease();
 	})
-	.command("deploy <target>", "deploy latest release to either staging or production", yargs => {
+	.command("deploy <target>", "deploy latest release to a named target, e.g. staging or production", yargs => {
 		yargs.positional("target", {
-			describe : "deploy target",
-			choices : ["staging", "production"]
+			describe : "deploy target"
 		})
 	}, argv => {
 		if (!conf.get("email").value()) {
