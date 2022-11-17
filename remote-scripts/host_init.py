@@ -20,6 +20,7 @@ os.makedirs(constants.HOSTSERVER_INSTALLED_APPS_DIR, exist_ok = True)
 
 # Install nginx
 if shutil.which("nginx") == None:
+	runCommand(["apt", "update"])
 	runCommand(["apt", "install", "-y", "nginx"])
 	assert shutil.which("nginx") != None
 
