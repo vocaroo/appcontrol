@@ -52,32 +52,12 @@ for deploymentName in os.listdir(constants.HOSTSERVER_APPS_DIR):
 		})
 
 # Validate: Check that no two apps share the same domain and webPath
-def checkWebPathConflicts():
-	conflictHashSet = set()
-	domainAndWebPathConflicts = {}
+domainAndWebPathSet = set()
 
-	for appInfo in allApps:
-		hash = str(appInfo["domain"]) + appInfo["webPath"]
-		
-		if hash not in domainAndWebPathConflicts:
-			domainAndWebPathConflicts[hash] = [appInfo]
-		else:
-			domainAndWebPathConflicts[hash].append(appInfo)
-			conflictHashSet.add(hash)
-	
-	if (len(conflictHashSet) > 0):
-		print("!!!ERROR: Same domain and webPath in more than one app.")
-		
-		for hash in conflictHashSet:
-			appInfos = domainAndWebPathConflicts[hash]
-			print(" PATH: " + appInfos[0]["domain"] + appInfos[0]["webPath"])
-			
-			for appInfo in appInfos:
-				print(" Conflicting app: " + appInfo["deploymentName"] + "/" + appInfo["appName"])
-			
-		sys.exit(1)
-	
-checkWebPathConflicts()
+for appInfo in allApps:
+	hash = str(appInfo["domain"]) + appInfo["webPath"]
+	assert hash not in domainAndWebPathSet, ("Same domain and webPath in more than one app: " + appInfo["appName"])
+	domainAndWebPathSet.add(hash)
 
 # We increment the start port by 1000 each time, just in case some old processes were
 # hanging on to ports for a while when shutting down.
