@@ -51,12 +51,14 @@ def checkForWebPathConflicts():
 	for host, servers in serversByHost.items():
 		domainAndWebPathSet = set()
 		
+		# For all apps on this host
 		for server in servers:
 			for appInfo in server["apps"]:
 				domain = appInfo.get("domain", None)
 				webPath = appInfo.get("webPath", "/")
 				
 				if domain:
+					# Check for duplicates!
 					hash = domain + webPath
 					
 					if hash in domainAndWebPathSet:
