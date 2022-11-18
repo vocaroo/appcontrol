@@ -283,12 +283,7 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 	console.log("Control server deploying to others...");
 
 	// Init control server
-	try {
-		await runRemoteScript(controlServer.ip, "control_deploy.py " + email + " " + getDeploymentName(target));
-	} catch (error) {
-		console.log(error.message); // Don't want to display the full stack, since the error was server side
-		console.log("Control server deploy failed.");
-	}
-
+	await runRemoteScript(controlServer.ip, "control_deploy.py " + email + " " + getDeploymentName(target));
+	
 	console.log("Done.");
 }

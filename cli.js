@@ -39,7 +39,10 @@ yargs(process.argv.slice(2))
 		}
 		
 		console.log(`Deploying to ${argv.target}`);
-		deploy(argv.target);
+		deploy(argv.target).catch(error => {
+			console.log(error);
+			console.log("!!!!!!!!!! DEPLOYMENT FAILED !!!!!!!!!!");
+		});
 	})
 	.command("get-fingerprint <hostIP>", "Get the ed25519 fingerprint of the specified host", {}, (argv) => {
 		getFingerprint(argv.hostIP);
