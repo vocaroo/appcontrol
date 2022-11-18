@@ -5,6 +5,7 @@ TOOL_NAME_LOWERCASE = TOOL_NAME.lower()
 # on master server
 CONTROLSERVER_SCRIPTS_DIR = "appcontrol-master-scripts"
 CONTROLSERVER_DEPLOYMENTS_DIR = "appcontrol-master-deployments"
+CONTROLSERVER_DEPLOYMENTS_INCOMING_DIR = "appcontrol-master-deployments-incoming"
 CONTROLSERVER_CERTS_DIR = "appcontrol-master-certs"
 CONTROLSERVER_CONF_PATH = "appcontrol-master.conf.json"
 

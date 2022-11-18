@@ -1,7 +1,7 @@
 import os, asyncio
 from datetime import datetime
 import constants
-from control_utils import readDeployConfigServers, getCertPrivkeyPath, getCertFullchainPath, getDomainsInServer, runCommandOnAllHosts, getAllDeployments
+from control_utils import readServers, getCertPrivkeyPath, getCertFullchainPath, getDomainsInServer, runCommandOnAllHosts, getAllDeployments
 from utils import rsync, getDeploymentKey, hostsFromServers
 
 print("Propagating SSL certs... " + datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
@@ -12,7 +12,7 @@ deployments = getAllDeployments()
 # but that's probably okay... for now.
 async def propagate():
 	for deploymentName in deployments:
-		deployConfig, servers = readDeployConfigServers(deploymentName)
+		servers = readServers(deploymentName)
 		
 		rsyncTasks = []
 		
@@ -39,7 +39,7 @@ asyncio.run(propagate())
 # This is blocking per deployment, could be improved
 for deploymentName in deployments:
 	print("Reloading nginx across deployment " + deploymentName)
-	deployConfig, servers = readDeployConfigServers(deploymentName)
+	servers = readServers(deploymentName)
 	hosts = hostsFromServers(servers)
 	
 	if not runCommandOnAllHosts(hosts, deploymentName, "systemctl --no-block reload nginx"):

@@ -14,7 +14,7 @@ const {validateConfig, validateAppName} = require("./validateConfig.js");
 const {getReleaseDir, getSSHKeyPath, getControlKeyPath, findProjectName, hostToProp} = require("./utils.js");
 
 const REMOTE_SCRIPT_DIR = "appcontrol-master-scripts"; // directory only present on the control or master server
-const REMOTE_DEPLOYMENTS_DIR = "appcontrol-master-deployments";
+const REMOTE_DEPLOYMENTS_INCOMING_DIR = "appcontrol-master-deployments-incoming";
 const MAIN_SSH_PRIVATE_KEY = fs.readFileSync(getSSHKeyPath());
 const exec = util.promisify(child_process.exec);
 
@@ -62,7 +62,7 @@ function syncRemoteScripts(host) {
 }
 
 function syncDeployment(host, deploymentDir) {
-	return rsync(host, deploymentDir, REMOTE_DEPLOYMENTS_DIR + "/");
+	return rsync(host, deploymentDir, REMOTE_DEPLOYMENTS_INCOMING_DIR + "/");
 }
 
 // split some text into lines and print them one by one to console.log, ignoring empty (whitespace only) lines
@@ -257,17 +257,12 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 	await syncRemoteScripts(controlServer.ip);
 	
 	// Init control server
-	if (!conf.get(`controlServerInitStatus.${hostToProp(controlServer.ip)}`).value()) {
-		try {			
-			console.log("Control server initialising...");
-			await runRemoteScript(controlServer.ip, "control_init.py " + email);
-			
-			conf.set(`controlServerInitStatus.${hostToProp(controlServer.ip)}`, true)
-				.write();
-		} catch (error) {
-			console.log(error.message);
-			console.log("Control server init failed.");
-		}
+	if (!conf.get(`controlServerInitStatus.${hostToProp(controlServer.ip)}`).value()) {		
+		console.log("Control server initialising...");
+		await runRemoteScript(controlServer.ip, "control_init.py " + email);
+		
+		conf.set(`controlServerInitStatus.${hostToProp(controlServer.ip)}`, true)
+			.write();
 	}
 
 	// Get all apps that are used by this deploy target

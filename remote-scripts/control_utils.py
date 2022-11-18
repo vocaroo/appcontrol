@@ -26,15 +26,26 @@ def getDomainsInServer(server):
 			domainSet.add(appInfo["domain"])
 	return domainSet
 
-def readDeployConfigServers(deploymentName):
+def readDeployConfigFromDir(deploymentName, dirPath):
+	with open(dirPath + "/" + deploymentName + "/" + constants.LOCAL_CONFIG_FILE) as fp:
+		return json.load(fp)
+
+# Return the deploy config for a given deployment
+def readDeployConfig(deploymentName):
+	return readDeployConfigFromDir(deploymentName, constants.CONTROLSERVER_DEPLOYMENTS_DIR)
+
+def serversFromDeployConfig(deploymentName, deployConfig):
 	projectName, deployTarget = getProjectNameAndTarget(deploymentName)
-	
-	with open(constants.CONTROLSERVER_DEPLOYMENTS_DIR + "/" + deploymentName + "/" + constants.LOCAL_CONFIG_FILE) as fp:
-		deployConfig = json.load(fp)
-		assert (deployTarget in deployConfig)
-		servers = deployConfig[deployTarget]
-	
-	return (deployConfig, servers)
+	assert (deployTarget in deployConfig)
+	return deployConfig[deployTarget]
+
+# Read only the servers from a deployment
+def readServers(deploymentName):
+	return serversFromDeployConfig(deploymentName, readDeployConfig(deploymentName))
+
+# Read the servers from an incoming deployment (from the temporary -incoming directory)
+def readServersIncoming(deploymentName):
+	return serversFromDeployConfig(deploymentName, readDeployConfigFromDir(deploymentName, constants.CONTROLSERVER_DEPLOYMENTS_INCOMING_DIR))
 
 def getAllDeployments():
 	return os.listdir(constants.CONTROLSERVER_DEPLOYMENTS_DIR)
@@ -45,10 +56,22 @@ def getAllDeploymentServers():
 	deployments = getAllDeployments()
 	
 	for deploymentName in deployments:
-		deployConfig, servers = readDeployConfigServers(deploymentName)		
-		allServers.extend(servers)
+		allServers.extend(readServers(deploymentName))
 	
 	return allServers
+
+def getServersByHost(servers): # group by IP
+	serversByHost = {}
+	
+	for server in servers:
+		host = server["ip"]
+		
+		if host in serversByHost:
+			serversByHost[host].append(server)
+		else:
+			serversByHost[host] = [server]
+	
+	return serversByHost
 
 # Write correct host fingerprints to known_hosts
 # This must be done for *all* deployments on this control server, not just the one that is currently being deployed.

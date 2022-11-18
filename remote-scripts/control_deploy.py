@@ -7,8 +7,8 @@ localConf = ConfigStore(constants.CONTROLSERVER_CONF_PATH)
 # Check this before we import anything that uses non-standard modules (i.e. parallel-ssh)
 assert localConf.get("initialised") != None, "Control server was not correctly initialised. Perhaps the reset command needs to be called."
 
-from utils import getProjectNameAndTarget, rsync, getDeploymentKey, runCommand, hostsFromServers
-from control_utils import readDeployConfigServers, getCertPrivkeyPath, getCertFullchainPath, getAllDomains, getDomainsInServer, runOnAllHosts, writeKnownHosts
+from utils import getProjectNameAndTarget, rsync, getDeploymentKey, runCommand, hostsFromServers, localRsync
+from control_utils import readDeployConfig, serversFromDeployConfig, getCertPrivkeyPath, getCertFullchainPath, getAllDomains, getDomainsInServer, runOnAllHosts, writeKnownHosts, getServersByHost, readServers, readServersIncoming, getAllDeployments
 
 email = sys.argv[1]
 deploymentName = sys.argv[2]
@@ -29,9 +29,57 @@ if email != localConf.get("email"):
 	runCommand([constants.ACME_SH_PATH, "-m", email, "--update-account"])
 	localConf.set("email", email)
 
+# Check for conflicts of web path - a given host cannot have a domain and web path served by more than one app
+def checkForWebPathConflicts():
+	# We want a list of all servers across all deployments that will exist *if* this deploy goes ahead
+	newServersState = []
+	
+	# Find all servers from existing deployments, EXCLUDING this current deployment
+	deploymentNames = getAllDeployments()
+	
+	for iterDeploymentName in deploymentNames:
+		if iterDeploymentName != deploymentName:
+			newServersState.extend(readServers(iterDeploymentName))
+	
+	# Then, also read the INCOMING servers of this new deployment
+	newServersState.extend(readServersIncoming(deploymentName))
+	
+	# Organise all these servers by host IP
+	serversByHost = getServersByHost(newServersState)
+	
+	# For each host IP
+	for host, servers in serversByHost.items():
+		domainAndWebPathSet = set()
+		
+		for server in servers:
+			for appInfo in server["apps"]:
+				domain = appInfo.get("domain", None)
+				webPath = appInfo.get("webPath", "/")
+				
+				if domain:
+					hash = domain + webPath
+					
+					if hash in domainAndWebPathSet:
+						print("Same domain and webPath used in more than one app on the same server.")
+						print(hash)
+						print("Deployment aborted.")
+						print("Please fix the problem and re-deploy.")						
+						sys.exit(1)
+					
+					domainAndWebPathSet.add(hash)
+
+checkForWebPathConflicts()
+
+# Move incoming deployment to the *actual* deployment dir, now that some stuff above was validated
+localRsync(
+	constants.CONTROLSERVER_DEPLOYMENTS_INCOMING_DIR + "/" + deploymentName + "/",
+	constants.CONTROLSERVER_DEPLOYMENTS_DIR + "/" + deploymentName,
+)
+
 # Must deploy scripts (from working directory) to all other servers in this deploy target (to their local ~/appcontrol dir)
 # First, get the host IPs
-deployConfig, servers = readDeployConfigServers(deploymentName)
+deployConfig = readDeployConfig(deploymentName)
+servers = serversFromDeployConfig(deploymentName, deployConfig)
 hosts = hostsFromServers(servers)
 
 print("Deploying to hosts", hosts)

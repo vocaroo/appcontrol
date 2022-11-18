@@ -36,6 +36,17 @@ async def runCommandAsync(argList):
 
 	return stdout.decode().strip()
 
+# Rsync between local directories, synchronously
+def localRsync(sourceDir, destDir, extraArgs = []):
+	return runCommand([
+			"rsync",
+			"-rzl",
+			"--delete",
+		]
+		+ extraArgs
+		+ [sourceDir, destDir]
+	)
+
 async def rsync(host, keyPath, sourceDir, destDir, extraArgs = []):
 	remoteShell = "ssh -oBatchMode=yes -i " + keyPath
 	dest = "root@" + host + ":" + destDir;

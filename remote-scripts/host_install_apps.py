@@ -55,9 +55,10 @@ for deploymentName in os.listdir(constants.HOSTSERVER_APPS_DIR):
 domainAndWebPathSet = set()
 
 for appInfo in allApps:
-	hash = str(appInfo["domain"]) + appInfo["webPath"]
-	assert hash not in domainAndWebPathSet, ("Same domain and webPath in more than one app: " + appInfo["appName"])
-	domainAndWebPathSet.add(hash)
+	if appInfo["domain"]:
+		hash = str(appInfo["domain"]) + appInfo["webPath"]
+		assert hash not in domainAndWebPathSet, ("Same domain and webPath in more than one app: " + appInfo["appName"])
+		domainAndWebPathSet.add(hash)
 
 # We increment the start port by 1000 each time, just in case some old processes were
 # hanging on to ports for a while when shutting down.
