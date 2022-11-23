@@ -81,6 +81,7 @@ localRsync(
 # Must deploy scripts (from working directory) to all other servers in this deploy target (to their local ~/appcontrol dir)
 # First, get the host IPs
 deployConfig = readDeployConfig(deploymentName)
+targetConfig = deployConfig[deployTarget]
 servers = serversFromDeployConfig(deploymentName, deployConfig)
 hosts = hostsFromServers(servers)
 
@@ -198,6 +199,20 @@ async def deploy():
 					if keyName in appInfo:
 						appMeta[keyName] = appInfo[keyName]
 
+			# combine and inject ENV vars from the deploy config
+			env = appMeta.get("env", {}) # start with existing app.json env
+			
+			if "env" in targetConfig: # override with global env from the deploy target
+				env.update(targetConfig["env"])
+			
+			if "envApp" in targetConfig and appName in targetConfig["envApp"]: # override with envApp, shared by all of this app name
+				env.update(targetConfig["envApp"][appName])
+			
+			if "env" in appInfo: # override with specific to this app instance in the server definition
+				env.update(appInfo["env"])
+			
+			appMeta["env"] = env
+			
 			with open(appTempDir + "/appMeta.json", "w") as fp:
 				json.dump(appMeta, fp, indent = "\t")
 
