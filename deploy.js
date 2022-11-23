@@ -220,7 +220,7 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 	let email = conf.get("email").value();
 	assert(email, "No email defined in conf");
 
-	let servers = validatedConfig[target];
+	let servers = validatedConfig[target].servers;
 
 	if ( !(servers?.length > 0) ) {
 		console.log(`No servers for "${target}" found in config, nothing to do.`);
