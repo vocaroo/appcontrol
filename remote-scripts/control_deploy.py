@@ -82,6 +82,14 @@ localRsync(
 # First, get the host IPs
 deployConfig = readDeployConfig(deploymentName)
 targetConfig = deployConfig[deployTarget]
+
+letsencryptConfig = None
+
+if "letsencrypt" in targetConfig: # letsencrypt config in the target block has precedence
+	letsencryptConfig = targetConfig["letsencrypt"]
+elif "letsencrypt" in deployConfig: # use the global config if present
+	letsencryptConfig = deployConfig["letsencrypt"]
+
 servers = serversFromDeployConfig(deploymentName, deployConfig)
 hosts = hostsFromServers(servers)
 
@@ -98,7 +106,6 @@ domainSet = getAllDomains(servers)
 print("All domains in this deployment:", str(domainSet))
 
 def issueCertsDNS(domainSet):
-	letsencryptConfig = deployConfig["letsencrypt"]
 	dnsHookName = letsencryptConfig["dns_hook"]
 	challengeAliasDomain = letsencryptConfig.get("challenge_alias_domain") # Can be omitted, so will be None
 
@@ -139,10 +146,10 @@ def issueCertsHTTP(domainSet):
 		]))
 
 def issueCerts(domainSet):
-	if "letsencrypt" in deployConfig and "dns_hook" in deployConfig["letsencrypt"]:
+	if letsencryptConfig and "dns_hook" in letsencryptConfig:
 		issueCertsDNS(domainSet)
 	else:
-		issueCertsHTTP(domainSet)
+		issueCertsHTTP(domainSet) # http is default if no config given
 
 async def main():
 	await initHosts()
