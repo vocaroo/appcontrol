@@ -13,7 +13,6 @@ function getNextReleaseDir() {
 }
 
 module.exports = async function() {
-	fs.ensureDirSync(constants.LOCAL_DATA_DIR);
 	fs.ensureDirSync(constants.RELEASE_DIR);
 
 	let allApps = findApps();
