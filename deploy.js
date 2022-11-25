@@ -11,7 +11,7 @@ const db = require("./db.js");
 const conf = require("./conf.js");
 const resetServer = require("./resetServer.js");
 const {validateConfig, validateAppName} = require("./validateConfig.js");
-const {getReleaseDir, getSSHKeyPath, getControlKeyPath, findProjectName, hostToProp} = require("./utils.js");
+const {getReleaseDir, getSSHKeyPath, getControlKeyPath, findProjectName, hostToProp, readLocalConfig} = require("./utils.js");
 
 const REMOTE_SCRIPT_DIR = "appcontrol-master-scripts"; // directory only present on the control or master server
 const REMOTE_DEPLOYMENTS_INCOMING_DIR = "appcontrol-master-deployments-incoming";
@@ -212,7 +212,7 @@ function getAppsUsed(servers) {
 module.exports = async function(target, releaseNumber = db.get("latestReleaseNum").value()) {
 	// Validation
 	target = validateAppName(target);
-	let validatedConfig = validateConfig(fs.readJsonSync(constants.LOCAL_CONFIG_FILE), target); // This also may set some defaults
+	let validatedConfig = validateConfig(readLocalConfig(), target); // This also may set some defaults
 
 	let releaseDir = getReleaseDir(releaseNumber);
 	console.log(`Deploying release number ${releaseNumber} to ${target}...`);

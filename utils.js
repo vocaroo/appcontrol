@@ -23,11 +23,22 @@ function readJson(filePath) {
 	return json;
 }
 
+function readLocalConfig() {
+	return readJson(constants.LOCAL_CONFIG_FILE);
+}
+
 function appNameFromDir(dirPath) {
 	return validateAppName(path.basename(dirPath));
 }
 
 function findProjectName() {
+	let config = readLocalConfig();
+	
+	if (config.name) {
+		return validateAppName(config.name);
+	}
+	
+	// By default, name the project after its directory
 	// use same format as an app name
 	return appNameFromDir(process.cwd());
 }
@@ -56,6 +67,7 @@ module.exports = {
 	readJson,
 	validateAppName,
 	appNameFromDir,
+	readLocalConfig,
 	findProjectName,
 	getReleaseDir,
 	getSSHKeyPath,
