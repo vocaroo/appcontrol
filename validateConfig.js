@@ -3,7 +3,7 @@ const assert = require("assert");
 // lower case and replace any spaces with a hyphen
 // used for both app names and also some other things (target name, project name...)
 function validateAppName(name) {
-	name = name.trim().toLowerCase().replace(/\s+/g, "-");
+	name = name.trim().toLowerCase().replace(/\s+/g, "_");
 	assert(/^[a-z][-_a-z0-9]+$/.test(name), `Invalid app name or other name: ${name}`);
 	assert(!name.includes("---"), `App name or other name must not contain three hyphens: ${name}`);
 	return name;
