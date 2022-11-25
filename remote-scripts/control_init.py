@@ -6,6 +6,8 @@ email = sys.argv[1]
 assert(len(email) > 0)
 
 os.makedirs(constants.CONTROLSERVER_CERTS_DIR, exist_ok = True)
+os.makedirs(constants.CONTROLSERVER_DEPLOYMENTS_INCOMING_DIR, exist_ok = True)
+os.makedirs(constants.CONTROLSERVER_DEPLOYMENTS_DIR, exist_ok = True)
 
 # A place to store some local state for control server
 localConf = ConfigStore(constants.CONTROLSERVER_CONF_PATH)
