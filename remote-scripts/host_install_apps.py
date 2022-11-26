@@ -48,7 +48,7 @@ for deploymentName in os.listdir(constants.HOSTSERVER_APPS_DIR):
 			"env" : appMeta.get("env", {}),
 			"username" : username,
 			"dataDir" : getAppDataDir(deploymentName, username),
-			"logDir" : getAppLogDir(deploymentName, username)
+			"logDir" : getAppLogDir(deploymentName, appName, username)
 		})
 
 # Validate: Check that no two apps share the same domain and webPath

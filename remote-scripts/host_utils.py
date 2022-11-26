@@ -28,8 +28,8 @@ def loadRuntimes():
 def getAppInstalledPath(newInstallDir, appInfo):
 	return newInstallDir + "/" + appInfo["deploymentName"] + "/" + appInfo["appName"]
 
-def getAppLogDir(deploymentName, username):
-	return constants.HOSTSERVER_APP_LOG_DIR + "/" + deploymentName + "/" + username
+def getAppLogDir(deploymentName, appName, username):
+	return constants.HOSTSERVER_APP_LOG_DIR + "/" + deploymentName + "/" + appName + "/" + username
 
 def getAppDataDir(deploymentName, username):
 	return constants.HOSTSERVER_APP_DATA_DIR + "/" + deploymentName + "/" + username
