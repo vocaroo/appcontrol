@@ -28,11 +28,11 @@ def loadRuntimes():
 def getAppInstalledPath(newInstallDir, appInfo):
 	return newInstallDir + "/" + appInfo["deploymentName"] + "/" + appInfo["appName"]
 
-def getAppLogDir(deploymentName, appName):
-	return constants.HOSTSERVER_APP_LOG_DIR + "/" + deploymentName + "/" + appName
+def getAppLogDir(deploymentName, username):
+	return constants.HOSTSERVER_APP_LOG_DIR + "/" + deploymentName + "/" + username
 
-def getAppDataDir(username):
-	return constants.HOSTSERVER_APP_DATA_DIR + "/" + username
+def getAppDataDir(deploymentName, username):
+	return constants.HOSTSERVER_APP_DATA_DIR + "/" + deploymentName + "/" + username
 
 def getInstanceCount(instancesPerCPU):
 	return instancesPerCPU * os.cpu_count() if instancesPerCPU > 0 else 1
