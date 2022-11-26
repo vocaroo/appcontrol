@@ -123,15 +123,17 @@ for runtimeName in usedRuntimes:
 	runtimes[name].install(version)
 
 # Group apps by domain name
+# If an app doesn't have a domain, omit it. Won't be routed to by nginx, e.g. a server daemon.
 appsByDomain = {}
 
 for appInfo in allApps:
 	domain = appInfo["domain"]
 
-	if domain in appsByDomain:
-		appsByDomain[domain].append(appInfo)
-	else:
-		appsByDomain[domain] = [appInfo]
+	if domain:
+		if domain in appsByDomain:
+			appsByDomain[domain].append(appInfo)
+		else:
+			appsByDomain[domain] = [appInfo]
 
 # First, find old install dir(s)
 # Should only be a single dir, but we'll treat it as many just in case there were ever some errors
