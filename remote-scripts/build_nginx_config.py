@@ -18,7 +18,7 @@ def addLocationBlock(appInfo, confUpstreamBlocks, confLocationBlocks, newInstall
 		confUpstreamBlocks.append(fromTemplate("nginx-serverapp-upstream.template", {
 			"###UPSTREAM_NAME###" : upstreamName,
 			"###SERVERS###" : "\n"
-				.join(["server 127.0.0.1:" + str(appInfo["portRangeStart"] + i) + " max_fails=0;" for i in range(0, instanceCount)])
+				.join(["server localhost:" + str(appInfo["portRangeStart"] + i) + " max_fails=0;" for i in range(0, instanceCount)])
 		}))
 
 		# Create a location block
