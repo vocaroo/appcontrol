@@ -6,9 +6,12 @@ User=###USER###
 Environment=PORT=###PORT###
 Environment=APP_DATA_DIR=###APP_DATA_DIR###
 Environment=APP_LOG_DIR=###APP_LOG_DIR###
+Environment=APP_TEMP_DIR=###APP_TEMP_DIR###
 ###ENVIRONMENT###
 Type=simple
 WorkingDirectory=###WORKING_DIRECTORY###
+ExecStartPre=+mkdir -p ###APP_TEMP_DIR###
+ExecStartPre=+chown ###USER###:###USER### ###APP_TEMP_DIR###
 ExecStart=###EXEC_CMD###
 Restart=always
 

@@ -3,7 +3,7 @@ import os, json, secrets, shutil, importlib, glob, sys, pwd
 import constants
 from pathlib import Path
 from utils import runCommand, ConfigStore
-from host_utils import fromTemplate, loadRuntimes, getAppInstalledPath, getInstanceCount, getServiceName, formatEnvForSystemd, genUserName, genDataGroupUserName, getAppLogDir, getAppDataDir
+from host_utils import fromTemplate, loadRuntimes, getAppInstalledPath, getInstanceCount, getServiceName, formatEnvForSystemd, genUserName, genDataGroupUserName, getAppLogDir, getAppDataDir, getAppTempDir
 from build_nginx_config import buildNginxConf
 
 print("Will install apps on this server!")
@@ -174,6 +174,7 @@ for appInfo in allApps:
 				"###PORT###" : str(appInfo["portRangeStart"] + i),
 				"###APP_DATA_DIR###" : appInfo["dataDir"],
 				"###APP_LOG_DIR###" : appInfo["logDir"],
+				"###APP_TEMP_DIR###" : getAppTempDir(appInfo["deploymentName"], appInfo["username"]),
 				"###ENVIRONMENT###" : formatEnvForSystemd({
 					# Use env vars from the runtime and also the app.json
 					# app.json having precedence

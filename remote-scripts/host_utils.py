@@ -34,6 +34,9 @@ def getAppLogDir(deploymentName, appName, username):
 def getAppDataDir(deploymentName, username):
 	return constants.HOSTSERVER_APP_DATA_DIR + "/" + deploymentName + "/" + username
 
+def getAppTempDir(deploymentName, username):
+	return constants.HOSTSERVER_APP_TEMP_DIR + "/" + deploymentName + "/" + username
+
 def getInstanceCount(instancesPerCPU):
 	return instancesPerCPU * os.cpu_count() if instancesPerCPU > 0 else 1
 
