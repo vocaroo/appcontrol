@@ -10,8 +10,34 @@ function initProject() {
 	fs.ensureDirSync(constants.LOCAL_DATA_DIR);
 }
 
+function cmdRelease() {
+	console.log("will release");
+	initProject();
+	require("./createRelease.js")();
+}
+
+function cmdDeploy(target) {
+	initProject();
+	
+	if (!conf.get("email").value()) {
+		let email = null;
+		
+		while (!email) {
+			email = readlineSync.question("Enter an email address for letsencrypt notifications: ");
+		}
+		
+		conf.set("email", email).write();
+	}
+	
+	console.log(`Deploying to ${target}`);
+	require("./deploy.js")(target).catch(error => {
+		console.log(error);
+		console.log("!!!!!!!!!! DEPLOYMENT FAILED !!!!!!!!!!");
+	});
+}
+
 yargs(process.argv.slice(2))
-	.command("info", "show info about deployment", {}, (argv) => {
+	.command("info", "Show info about deployment", {}, (argv) => {
 		console.log("Welcome to AppControl");
 		console.log("Current project name:", findProjectName());
 
@@ -19,33 +45,23 @@ yargs(process.argv.slice(2))
 
 		console.log("Detected apps: ", apps.map(appInfo => appInfo.name));
 	})
-	.command("release", "create a numbered release", {}, (argv) => {
-		console.log("will release");
-		initProject();
-		require("./createRelease.js")();
+	.command("release", "Create a numbered release", {}, argv => {
+		cmdRelease();
 	})
-	.command("deploy <target>", "deploy latest release to a named target, e.g. staging or production", yargs => {
+	.command("deploy <target>", "Deploy latest release to a named target, e.g. staging or production", yargs => {
 		yargs.positional("target", {
 			describe : "deploy target"
 		})
 	}, argv => {
-		initProject();
-		
-		if (!conf.get("email").value()) {
-			let email = null;
-			
-			while (!email) {
-				email = readlineSync.question("Enter an email address for letsencrypt notifications: ");
-			}
-			
-			conf.set("email", email).write();
-		}
-		
-		console.log(`Deploying to ${argv.target}`);
-		require("./deploy.js")(argv.target).catch(error => {
-			console.log(error);
-			console.log("!!!!!!!!!! DEPLOYMENT FAILED !!!!!!!!!!");
-		});
+		cmdDeploy(argv.target);
+	})
+	.command("quickrelease <target>", "Release and deploy in one step", yargs => {
+		yargs.positional("target", {
+			describe : "deploy target"
+		})
+	}, argv => {
+		cmdRelease();
+		cmdDeploy(argv.target);
 	})
 	.command("get-fingerprint <hostIP>", "Get the ed25519 fingerprint of the specified host", {}, (argv) => {
 		require("./getFingerprint.js")(argv.hostIP);
