@@ -5,7 +5,7 @@ const {validateAppName} = require("./validateConfig.js");
 
 // Read json sync, returning empty object {} if no file existed
 // Also return {} if an empty file
-function readJson(filePath) {
+function readJson(filePath, suppressSyntaxError = false) {
 	let json = {};
 	
 	try {		
@@ -15,7 +15,10 @@ function readJson(filePath) {
 		
 		json = fs.readJsonSync(filePath);
 	} catch (error) {
-		if (error.code != "ENOENT") {
+		let ignoreError = error.code == "ENOENT"
+			|| (suppressSyntaxError && error instanceof SyntaxError);
+		
+		if (!ignoreError) {
 			throw error;
 		}
 	}
