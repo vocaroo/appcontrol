@@ -3,6 +3,8 @@ const path = require("path");
 const assert = require("assert");
 const {appNameFromDir} = require("./utils.js");
 
+const EXCLUDED_DIRS = new Set(["node_modules"]);
+
 // Require all contents of the ./appdetect dir
 const appDetectors = fs.readdirSync(path.join(__dirname, "appdetect")).map(fileName => require("./appdetect/" + fileName));
 
@@ -21,6 +23,10 @@ module.exports = function findApps(startPath = "./") {
 	let dirNames = getDirNames(startPath);
 
 	for (let dir of dirNames) {
+		if (EXCLUDED_DIRS.has(dir)) {
+			continue;
+		}
+		
 		dir = path.join(startPath, dir); // may be recursing into subdir
 
 		let detectedAs = null;
