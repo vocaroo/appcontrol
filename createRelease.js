@@ -4,16 +4,17 @@ const child_process = require("child_process");
 const process = require("process");
 const tmp = require("tmp");
 const constants = require("./constants.js");
+const config = require("./config.js");
 const findApps = require("./findApps.js");
-const {getReleaseDir, readJson} = require("./utils.js");
+const {getNumberedReleaseDir, readJson} = require("./utils.js");
 const db = require("./db.js");
 
 function getNextReleaseDir() {
-	return getReleaseDir( db.get("latestReleaseNum").value() + 1);
+	return getNumberedReleaseDir(config.releaseDir, db.get("latestReleaseNum").value() + 1);
 }
 
 module.exports = async function() {
-	fs.ensureDirSync(constants.RELEASE_DIR);
+	fs.ensureDirSync(config.releaseDir);
 
 	let allApps = findApps();
 	

@@ -36,8 +36,8 @@ def readDeployConfig(deploymentName):
 
 def serversFromDeployConfig(deploymentName, deployConfig):
 	projectName, deployTarget = getProjectNameAndTarget(deploymentName)
-	assert (deployTarget in deployConfig)
-	return deployConfig[deployTarget]["servers"]
+	assert ("deployment" in deployConfig)
+	return deployConfig["deployment"]["servers"]
 
 # Read only the servers from a deployment
 def readServers(deploymentName):

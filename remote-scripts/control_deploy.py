@@ -81,7 +81,7 @@ localRsync(
 # Must deploy scripts (from working directory) to all other servers in this deploy target (to their local ~/appcontrol dir)
 # First, get the host IPs
 deployConfig = readDeployConfig(deploymentName)
-targetConfig = deployConfig[deployTarget]
+targetConfig = deployConfig["deployment"]
 
 letsencryptConfig = None
 

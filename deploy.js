@@ -10,8 +10,9 @@ const constants = require("./constants.js");
 const db = require("./db.js");
 const conf = require("./conf.js");
 const resetServer = require("./resetServer.js");
-const {validateConfig, validateAppName} = require("./validateConfig.js");
-const {getReleaseDir, getSSHKeyPath, getControlKeyPath, findProjectName, hostToProp, readLocalConfig} = require("./utils.js");
+const makeDeployConfig = require("./makeDeployConfig.js");
+const {getNumberedReleaseDir, getSSHKeyPath, getControlKeyPath, hostToProp} = require("./utils.js");
+const config = require("./config.js");
 
 const REMOTE_SCRIPT_DIR = "appcontrol-master-scripts"; // directory only present on the control or master server
 const REMOTE_DEPLOYMENTS_INCOMING_DIR = "appcontrol-master-deployments-incoming";
@@ -157,10 +158,10 @@ async function copyControlKeyToServers(target, servers) {
 }
 
 function getDeploymentName(target) {
-	return findProjectName() + "---" + target; // e.g. "MyProject---production"
+	return config.name + "---" + target; // e.g. "MyProject---production"
 }
 
-function buildDeployment(validatedConfig, target, releaseDir, appNames) {
+function buildDeployment(deployConfig, target, releaseDir, appNames) {
 	let tmpDir = tmp.dirSync({
 		prefix : constants.TOOL_NAME + "-deploy"
 	}).name;
@@ -173,7 +174,7 @@ function buildDeployment(validatedConfig, target, releaseDir, appNames) {
 	fs.mkdirSync(deploymentDir + "/apps");
 
 	// copy *validated* appcontrol
-	fs.writeJsonSync(deploymentDir + "/" + constants.LOCAL_CONFIG_FILE, validatedConfig, {spaces : "\t"});
+	fs.writeJsonSync(deploymentDir + "/" + constants.LOCAL_CONFIG_FILE, deployConfig, {spaces : "\t"});
 
 	// Copy control key
 	fs.copyFileSync(getControlKeyPath(target), deploymentDir + "/control-key");
@@ -210,17 +211,13 @@ function getAppsUsed(servers) {
 }
 
 module.exports = async function(target, releaseNumber = db.get("latestReleaseNum").value()) {
-	// Validation
-	target = validateAppName(target);
-	let validatedConfig = validateConfig(readLocalConfig(), target); // This also may set some defaults
-
-	let releaseDir = getReleaseDir(releaseNumber);
+	let releaseDir = getNumberedReleaseDir(config.releaseDir, releaseNumber);
 	console.log(`Deploying release number ${releaseNumber} to ${target}...`);
 	
 	let email = conf.get("email").value();
 	assert(email, "No email defined in conf");
 
-	let servers = validatedConfig[target].servers;
+	let servers = config.deployments[target].servers;
 
 	if ( !(servers?.length > 0) ) {
 		console.log(`No servers for "${target}" found in config, nothing to do.`);
@@ -269,7 +266,8 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 	let appsUsed = getAppsUsed(servers);
 
 	// Build deploy package for the control server (apps, config, keys)
-	let {deploymentDir, purgeDeploymentDir} = buildDeployment(validatedConfig, target, releaseDir, appsUsed);
+	const deployConfig = makeDeployConfig(config, target);
+	let {deploymentDir, purgeDeploymentDir} = buildDeployment(deployConfig, target, releaseDir, appsUsed);
 
 	console.log("Deploying package to control server", controlServer.ip);
 

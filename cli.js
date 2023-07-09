@@ -3,8 +3,8 @@ const fs = require("fs-extra");
 const yargs = require("yargs/yargs");
 const readlineSync = require("readline-sync");
 const constants = require("./constants.js");
+const config = require("./config.js");
 const conf = require("./conf.js");
-const {findProjectName} = require("./utils.js");
 
 function initProject() {
 	fs.ensureDirSync(constants.LOCAL_DATA_DIR);
@@ -39,7 +39,7 @@ function cmdDeploy(target) {
 yargs(process.argv.slice(2))
 	.command("info", "Show info about deployment", {}, (argv) => {
 		console.log("Welcome to AppControl");
-		console.log("Current project name:", findProjectName());
+		console.log("Current project name:", config.name);
 
 		let apps = require("./findApps.js")();
 

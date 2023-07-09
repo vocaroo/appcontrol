@@ -1,7 +1,7 @@
 const path = require("path");
+const assert = require("assert");
 const fs = require("fs-extra");
 const constants = require("./constants.js");
-const {validateAppName} = require("./validateConfig.js");
 
 // Read json sync, returning empty object {} if no file existed
 // Also return {} if an empty file
@@ -26,28 +26,21 @@ function readJson(filePath, suppressSyntaxError = false) {
 	return json;
 }
 
-function readLocalConfig() {
-	return readJson(constants.LOCAL_CONFIG_FILE);
+// lower case and replace any spaces with a hyphen
+// used for both app names and also some other things (target name, project name...)
+function validateAppName(name) {
+	name = name.trim().toLowerCase().replace(/\s+/g, "_");
+	assert(/^[a-z][-_a-z0-9]+$/.test(name), `Invalid app name or other name: ${name}`);
+	assert(!name.includes("---"), `App name or other name must not contain three hyphens: ${name}`);
+	return name;
 }
 
 function appNameFromDir(dirPath) {
 	return validateAppName(path.basename(dirPath));
 }
 
-function findProjectName() {
-	let config = readLocalConfig();
-	
-	if (config.name) {
-		return validateAppName(config.name);
-	}
-	
-	// By default, name the project after its directory
-	// use same format as an app name
-	return appNameFromDir(process.cwd());
-}
-
-function getReleaseDir(releaseNumber) {
-	return constants.RELEASE_DIR + `/release-${releaseNumber}`;
+function getNumberedReleaseDir(releaseDir, releaseNumber) {
+	return releaseDir + `/release-${releaseNumber}`;
 }
 
 // Could check config for a ssh key path too, before falling back to .ssh dir
@@ -70,9 +63,7 @@ module.exports = {
 	readJson,
 	validateAppName,
 	appNameFromDir,
-	readLocalConfig,
-	findProjectName,
-	getReleaseDir,
+	getNumberedReleaseDir,
 	getSSHKeyPath,
 	getControlKeyPath,
 	hostToProp
