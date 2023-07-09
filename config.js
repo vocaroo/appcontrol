@@ -4,19 +4,18 @@ const crypto = require("crypto");
 const fs = require("fs-extra");
 const constants = require("./constants.js");
 const {readJson, appNameFromDir, validateAppName} = require("./utils.js");
-const conf = require("./conf.js");
-const db = require("./db.js");
+const {globalDB, localDB} = require("./db.js");
 
 const config = readJson(constants.LOCAL_CONFIG_FILE);
 
 // maybe should be in utils.js
 function getProjectUniqueId() {
-	let projectUniqueId = db.get("projectUniqueId").value();
+	let projectUniqueId = localDB.get("projectUniqueId").value();
 	
 	if (!projectUniqueId) {
 		projectUniqueId = crypto.randomUUID();
 		
-		db.set("projectUniqueId", projectUniqueId)
+		localDB.set("projectUniqueId", projectUniqueId)
 			.write();
 	}
 	
@@ -40,7 +39,7 @@ function getProjectName() {
 
 function getReleaseDir() {
 	const localReleaseDir = config.releaseDir;
-	const globalReleaseDir = conf.get("releaseDir").value();
+	const globalReleaseDir = globalDB.get("releaseDir").value();
 
 	if (localReleaseDir) {
 		return path.join(localReleaseDir, getExternalReleaseSubdir());

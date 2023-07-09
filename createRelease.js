@@ -7,10 +7,10 @@ const constants = require("./constants.js");
 const config = require("./config.js");
 const findApps = require("./findApps.js");
 const {getNumberedReleaseDir, readJson} = require("./utils.js");
-const db = require("./db.js");
+const {localDB} = require("./db.js");
 
 function getNextReleaseDir() {
-	return getNumberedReleaseDir(config.releaseDir, db.get("latestReleaseNum").value() + 1);
+	return getNumberedReleaseDir(config.releaseDir, localDB.get("latestReleaseNum").value() + 1);
 }
 
 module.exports = async function() {
@@ -118,6 +118,6 @@ module.exports = async function() {
 	console.log("New release saved to:", releaseDir);
 
 	// Successful release, so increase release number
-	db.update("latestReleaseNum", n => n + 1)
+	localDB.update("latestReleaseNum", n => n + 1)
 		.write();
 };

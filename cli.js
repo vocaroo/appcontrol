@@ -4,7 +4,7 @@ const yargs = require("yargs/yargs");
 const readlineSync = require("readline-sync");
 const constants = require("./constants.js");
 const config = require("./config.js");
-const conf = require("./conf.js");
+const {globalDB} = require("./db.js");
 
 function initProject() {
 	fs.ensureDirSync(constants.LOCAL_DATA_DIR);
@@ -19,14 +19,14 @@ function cmdRelease() {
 function cmdDeploy(target) {
 	initProject();
 	
-	if (!conf.get("email").value()) {
+	if (!globalDB.get("email").value()) {
 		let email = null;
 		
 		while (!email) {
 			email = readlineSync.question("Enter an email address for letsencrypt notifications: ");
 		}
 		
-		conf.set("email", email).write();
+		globalDB.set("email", email).write();
 	}
 	
 	console.log(`Deploying to ${target}`);

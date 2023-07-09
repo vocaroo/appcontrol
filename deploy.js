@@ -7,8 +7,7 @@ const fs = require("fs-extra");
 const tmp = require("tmp");
 const SSH = require("simple-ssh");
 const constants = require("./constants.js");
-const db = require("./db.js");
-const conf = require("./conf.js");
+const {globalDB, localDB} = require("./db.js");
 const resetServer = require("./resetServer.js");
 const makeDeployConfig = require("./makeDeployConfig.js");
 const {getNumberedReleaseDir, getSSHKeyPath, getControlKeyPath, hostToProp} = require("./utils.js");
@@ -118,7 +117,7 @@ function ensureControlKey(target) {
 		if (error.code == "ENOENT") {
 			// clear copied status flags in case the key for this target has been deleted and this is a new key
 			// new key will then be copied on next deploy
-			db.set(`controlKeyCopiedStatus.${target}`, {})
+			localDB.set(`controlKeyCopiedStatus.${target}`, {})
 				.write();
 
 			console.log(`Control key did not exist for ${target}, creating...`);
@@ -131,7 +130,7 @@ function ensureControlKey(target) {
 }
 
 async function copyControlKeyToHost(target, host) {
-	if (db.get(`controlKeyCopiedStatus.${target}.${hostToProp(host)}`).value()) {
+	if (localDB.get(`controlKeyCopiedStatus.${target}.${hostToProp(host)}`).value()) {
 		return; // Already copied for this target
 	}
 
@@ -147,7 +146,7 @@ async function copyControlKeyToHost(target, host) {
 	//printStdLines(stderr.toString());
 
 	console.log("Copied key to", host);
-	db.set(`controlKeyCopiedStatus.${target}.${hostToProp(host)}`, true)
+	localDB.set(`controlKeyCopiedStatus.${target}.${hostToProp(host)}`, true)
 		.write();
 }
 
@@ -210,11 +209,11 @@ function getAppsUsed(servers) {
 	return Array.from(appsUsed);
 }
 
-module.exports = async function(target, releaseNumber = db.get("latestReleaseNum").value()) {
+module.exports = async function(target, releaseNumber = localDB.get("latestReleaseNum").value()) {
 	let releaseDir = getNumberedReleaseDir(config.releaseDir, releaseNumber);
 	console.log(`Deploying release number ${releaseNumber} to ${target}...`);
 	
-	let email = conf.get("email").value();
+	let email = globalDB.get("email").value();
 	assert(email, "No email defined in conf");
 
 	let servers = config.deployments[target].servers;
@@ -226,7 +225,7 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 	
 	// Check that fingerprint didn't change
 	for (let server of servers) {
-		let lastFingerprint = db.get(`lastFingerprints.${target}.${hostToProp(server.ip)}`).value();
+		let lastFingerprint = localDB.get(`lastFingerprints.${target}.${hostToProp(server.ip)}`).value();
 		
 		if (lastFingerprint && server.fingerprint != lastFingerprint) {
 			// It changed.
@@ -234,7 +233,7 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 			resetServer(server.ip);
 		}
 		
-		db.set(`lastFingerprints.${target}.${hostToProp(server.ip)}`, server.fingerprint)
+		localDB.set(`lastFingerprints.${target}.${hostToProp(server.ip)}`, server.fingerprint)
 			.write();
 	}
 
@@ -254,11 +253,11 @@ module.exports = async function(target, releaseNumber = db.get("latestReleaseNum
 	await syncRemoteScripts(controlServer.ip);
 	
 	// Init control server
-	if (!conf.get(`controlServerInitStatus.${hostToProp(controlServer.ip)}`).value()) {		
+	if (!globalDB.get(`controlServerInitStatus.${hostToProp(controlServer.ip)}`).value()) {		
 		console.log("Control server initialising...");
 		await runRemoteScript(controlServer.ip, "control_init.py " + email);
 		
-		conf.set(`controlServerInitStatus.${hostToProp(controlServer.ip)}`, true)
+		globalDB.set(`controlServerInitStatus.${hostToProp(controlServer.ip)}`, true)
 			.write();
 	}
 
