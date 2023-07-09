@@ -1,24 +1,21 @@
 #!/usr/bin/env node
 const fs = require("fs-extra");
+const constants = require("./constants.js");
+
+// Create local data dir before we access any DB below.
+fs.ensureDirSync(constants.LOCAL_DATA_DIR);
+
 const yargs = require("yargs/yargs");
 const readlineSync = require("readline-sync");
-const constants = require("./constants.js");
 const config = require("./config.js");
 const {globalDB} = require("./db.js");
 
-function initProject() {
-	fs.ensureDirSync(constants.LOCAL_DATA_DIR);
-}
-
 function cmdRelease() {
 	console.log("will release");
-	initProject();
 	require("./createRelease.js")();
 }
 
-function cmdDeploy(target) {
-	initProject();
-	
+function cmdDeploy(target) {	
 	if (!globalDB.get("email").value()) {
 		let email = null;
 		
@@ -67,7 +64,6 @@ yargs(process.argv.slice(2))
 		require("./getFingerprint.js")(argv.hostIP);
 	})
 	.command("reset <hostIP>", "This must be called if a host or control server has been reinstalled or otherwise had its data removed", {}, (argv) => {
-		initProject();
 		require("./resetServer.js")(argv.hostIP);
 		// alert that new fingerprint should also be set
 		console.log("This host has been reset. Run deploy now.");
