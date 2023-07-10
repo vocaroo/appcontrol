@@ -1,4 +1,5 @@
-import sys, json, asyncio, os, tempfile, shutil
+import sys, json, asyncio, os, tempfile, shutil, re
+from pathlib import Path
 import constants
 from utils import ConfigStore
 
@@ -173,6 +174,38 @@ async def initHosts():
 	# Run server-init.py on each. Creates some necessary dirs and installs some stuff if not already installed
 	runOnAllHosts(hosts, deploymentName, "host_init.py " + deploymentName + " " + localConf.get("letsencryptThumbprint"))
 
+def fileInjectEnv(dirPath, testRegex, env):
+	for dirent in os.scandir(dirPath):
+		if dirent.is_dir():
+			# Recurse
+			fileInjectEnv(dirent.path, testRegex, env)
+		elif dirent.is_file():
+			# Replace?
+			if re.search(testRegex, dirent.name):
+				fileContents = Path(dirent.path).read_text()
+				
+				# substitute within fileContents
+				# first find all diff env vars that are used in the file
+				# then, replace them
+
+				for envVar, envVal in env.items():
+					envPlaceholderStr = "###APPCONTROL_ENV_{}###".format(envVar)
+					
+					if envPlaceholderStr in fileContents:
+						# This env was used. Replace the placeholder with the env var's value!
+						fileContents = fileContents.replace(envPlaceholderStr, envVal)
+
+				# also may inject entire env as JSON
+				fileContents = fileContents.replace("###APPCONTROL_JSON_ENV###", json.dumps(env))
+
+				# Finally, check for any remaining ###APPCONTROL_*###, giving a warning if encountered
+				# (an env var probably should have been set)
+				if "###APPCONTROL_" in fileContents:
+					print("Warning: Some ###APPCONTROL template strings were not matched with environmental variables and will remain in deployed app!")
+					print(["###APPCONTROL_{}###".format(x) for x in re.findall("###APPCONTROL_(.+)###", fileContents)])
+				
+				Path(dirent.path).write_text(fileContents)
+
 # Now want to rsync to each host!
 async def deploy():
 	# Now sync *ONLY* the desired apps and their SSL certs to each host
@@ -222,6 +255,11 @@ async def deploy():
 			
 			with open(appTempDir + "/appMeta.json", "w") as fp:
 				json.dump(appMeta, fp, indent = "\t")
+			
+			# Maybe inject some env into the app's files (e.g. for a client side web app)
+			# injectEnv is a file matching regex, e.g. "\\.(js|html)$"
+			if "injectEnv" in appMeta:
+				fileInjectEnv(appTempDir, appMeta["injectEnv"], env)
 
 		# Rsync the apps to the host
 		# This will also clear any apps that exist there and are no longer specified in the deployment

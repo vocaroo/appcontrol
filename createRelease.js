@@ -95,7 +95,7 @@ module.exports = async function() {
 
 		// Create a meta file for each app that records app type plus contents of app.json
 		fs.writeJsonSync(
-			tmpDir + `/${app.name}/appMeta.json`,
+			tmpDir + `/${app.name}/${constants.APP_META_FILE}`,
 			app.appMeta,
 			{spaces : "\t"}
 		);

@@ -160,7 +160,7 @@ function getDeploymentName(target) {
 	return config.name + "---" + target; // e.g. "MyProject---production"
 }
 
-function buildDeployment(deployConfig, target, releaseDir, appNames) {
+function bundleDeployment(deployConfig, target, releaseDir, appNames) {
 	let tmpDir = tmp.dirSync({
 		prefix : constants.TOOL_NAME + "-deploy"
 	}).name;
@@ -264,9 +264,9 @@ module.exports = async function(target, releaseNumber = localDB.get("latestRelea
 	// Get all apps that are used by this deploy target
 	let appsUsed = getAppsUsed(servers);
 
-	// Build deploy package for the control server (apps, config, keys)
+	// Create deploy package for the control server (apps, config, keys)
 	const deployConfig = makeDeployConfig(config, target);
-	let {deploymentDir, purgeDeploymentDir} = buildDeployment(deployConfig, target, releaseDir, appsUsed);
+	let {deploymentDir, purgeDeploymentDir} = bundleDeployment(deployConfig, target, releaseDir, appsUsed);
 
 	console.log("Deploying package to control server", controlServer.ip);
 
