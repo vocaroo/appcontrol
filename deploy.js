@@ -30,6 +30,7 @@ function rsync(host, sourceDir, destDir, extraArgs = []) {
 				"-rzl",
 				"-e", remoteShell,
 				"--delete",
+				"--checksum",
 				"--timeout=10"
 			].concat(extraArgs, sourceDir, dest)
 		);

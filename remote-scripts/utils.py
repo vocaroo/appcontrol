@@ -42,6 +42,7 @@ def localRsync(sourceDir, destDir, extraArgs = []):
 			"rsync",
 			"-rzl",
 			"--delete",
+			"--checksum"
 		]
 		+ extraArgs
 		+ [sourceDir, destDir]
@@ -56,6 +57,7 @@ async def rsync(host, keyPath, sourceDir, destDir, extraArgs = []):
 			"-rzl",
 			"-e", remoteShell,
 			"--delete",
+			"--checksum",
 			"--timeout=10"
 		]
 		+ extraArgs
