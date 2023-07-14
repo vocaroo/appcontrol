@@ -1,6 +1,6 @@
 from host_utils import fromTemplate, getAppInstalledPath, getCertPrivkeyPath, getCertFullchainPath
 
-def addLocationBlock(appInfo, confUpstreamBlocks, confLocationBlocks, newInstallDir):
+def addAppLocationBlock(appInfo, confUpstreamBlocks, confLocationBlocks, newInstallDir):
 	if appInfo["isWebApp"]:
 		# For other than the default, root, web app, add a location block
 		confLocationBlocks.append(fromTemplate("nginx-webapp-location.template", {
@@ -28,13 +28,30 @@ def addLocationBlock(appInfo, confUpstreamBlocks, confLocationBlocks, newInstall
 		}))
 
 
-def buildNginxConf(newInstallDir, appsByDomain, letsencryptThumbprint):
+def addRedirectLocationBlock(redirectInfo, confLocationBlocks):
+	if "regex" in redirectInfo:
+		confLocationBlocks.append(fromTemplate("nginx-redirect-regex-location.template", {
+			"###REGEX###" : redirectInfo["regex"],
+			"###REDIRECT_CODE###" : str(redirectInfo.get("code", 301)),
+			"###REDIRECT_URL###" : redirectInfo["destination"]
+		}))
+	else:
+		confLocationBlocks.append(fromTemplate("nginx-redirect-location.template", {
+			"###REDIRECT_CODE###" : str(redirectInfo.get("code", 301)),
+			"###REDIRECT_URL###" : redirectInfo["destination"]
+		}))
+
+
+def buildNginxConf(newInstallDir, thingsByDomain, letsencryptThumbprint):
 	confServerBlocks = []
 	confUpstreamBlocks = []
 
 	# Add a server block for each domain name
 	# Each may in turn contain several apps
-	for domain, appInfos in appsByDomain.items():
+	for domain, things in thingsByDomain.items():
+		appInfos = things["apps"]
+		redirectInfos = things["redirects"]
+		
 		rootApp = None
 		defaultRoot = "/var/www/html"
 		confLocationBlocks = []
@@ -44,11 +61,14 @@ def buildNginxConf(newInstallDir, appsByDomain, letsencryptThumbprint):
 			if appInfo["webPath"] == "/":
 				rootApp = appInfo
 			else:
-				addLocationBlock(appInfo, confUpstreamBlocks, confLocationBlocks, newInstallDir)
+				addAppLocationBlock(appInfo, confUpstreamBlocks, confLocationBlocks, newInstallDir)
+		
+		for redirectInfo in redirectInfos:
+			addRedirectLocationBlock(redirectInfo, confLocationBlocks)
 		
 		# Add the root app last, so its regex location is matched last if other matches fail
 		if rootApp:
-			addLocationBlock(rootApp, confUpstreamBlocks, confLocationBlocks, newInstallDir)
+			addAppLocationBlock(rootApp, confUpstreamBlocks, confLocationBlocks, newInstallDir)
 			
 			# Only add web root for a web app
 			if appInfo["isWebApp"]:

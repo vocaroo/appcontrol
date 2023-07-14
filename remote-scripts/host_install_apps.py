@@ -17,39 +17,52 @@ runtimes = loadRuntimes()
 # A place to store some local state for host server
 localConf = ConfigStore(constants.HOSTSERVER_CONF_PATH)
 
-# All apps found across all deployments
+# All apps and redirects found across all deployments
 allApps = []
+allRedirects = []
 
 # All used runtimes
 usedRuntimes = set()
 
 for deploymentName in os.listdir(constants.HOSTSERVER_APPS_DIR):
-	for appName in os.listdir(constants.HOSTSERVER_APPS_DIR + "/" + deploymentName):
-		with open(constants.HOSTSERVER_APPS_DIR + "/" + deploymentName + "/" + appName + "/appMeta.json", "r") as fp:
-			appMeta = json.load(fp)
+	# Find all redirects in this deployment
+	with open(constants.HOSTSERVER_APPS_DIR + "/" + deploymentName + "/server.json", "r") as fp:
+		serverBlock = json.load(fp)
 		
-		if "runtime" in appMeta:
-			usedRuntimes.add(appMeta["runtime"])
+		if "redirects" in serverBlock:
+			for redirect in serverBlock["redirects"]:
+				allRedirects.append(redirect)
+	
+	# Find all apps
+	for dirent in os.scandir(constants.HOSTSERVER_APPS_DIR + "/" + deploymentName):
+		if dirent.is_dir(): # might be a server.json which is not a dir
+			appName = dirent.name
+			
+			with open(constants.HOSTSERVER_APPS_DIR + "/" + deploymentName + "/" + appName + "/appMeta.json", "r") as fp:
+				appMeta = json.load(fp)
+			
+			if "runtime" in appMeta:
+				usedRuntimes.add(appMeta["runtime"])
 
-		if "dataGroup" in appMeta:
-			username = genDataGroupUserName(deploymentName, appMeta["dataGroup"])
-		else:
-			username = genUserName(deploymentName, appName)
-		
-		allApps.append({
-			"appName" : appName,
-			"deploymentName" : deploymentName,
-			"domain" : appMeta.get("domain", None),
-			"webPath" : appMeta.get("webPath", "/"),
-			"instancesPerCPU" : appMeta.get("instancesPerCPU", 0),
-			"isWebApp" : appMeta["isWebApp"],
-			"runtime" : appMeta.get("runtime", None),
-			"main" : appMeta.get("main", None),
-			"env" : appMeta.get("env", {}),
-			"username" : username,
-			"dataDir" : getAppDataDir(deploymentName, username),
-			"logDir" : getAppLogDir(deploymentName, appName, username)
-		})
+			if "dataGroup" in appMeta:
+				username = genDataGroupUserName(deploymentName, appMeta["dataGroup"])
+			else:
+				username = genUserName(deploymentName, appName)
+			
+			allApps.append({
+				"appName" : appName,
+				"deploymentName" : deploymentName,
+				"domain" : appMeta.get("domain", None),
+				"webPath" : appMeta.get("webPath", "/"),
+				"instancesPerCPU" : appMeta.get("instancesPerCPU", 0),
+				"isWebApp" : appMeta["isWebApp"],
+				"runtime" : appMeta.get("runtime", None),
+				"main" : appMeta.get("main", None),
+				"env" : appMeta.get("env", {}),
+				"username" : username,
+				"dataDir" : getAppDataDir(deploymentName, username),
+				"logDir" : getAppLogDir(deploymentName, appName, username)
+			})
 
 # Validate: Check that no two apps share the same domain and webPath
 domainAndWebPathSet = set()
@@ -122,18 +135,27 @@ for runtimeName in usedRuntimes:
 	# Install runtime, passing the version
 	runtimes[name].install(version)
 
-# Group apps by domain name
+# Group apps AND redirects by domain name
 # If an app doesn't have a domain, omit it. Won't be routed to by nginx, e.g. a server daemon.
-appsByDomain = {}
+thingsByDomain = {}
 
 for appInfo in allApps:
 	domain = appInfo["domain"]
 
 	if domain:
-		if domain in appsByDomain:
-			appsByDomain[domain].append(appInfo)
-		else:
-			appsByDomain[domain] = [appInfo]
+		if domain not in thingsByDomain:
+			thingsByDomain[domain] = {"apps" : [], "redirects" : []}
+		
+		thingsByDomain[domain]["apps"].append(appInfo)
+
+for redirectInfo in allRedirects:
+	domain = redirectInfo["domain"]
+
+	if domain:
+		if domain not in thingsByDomain:
+			thingsByDomain[domain] = {"apps" : [], "redirects" : []}
+			
+		thingsByDomain[domain]["redirects"].append(redirectInfo)
 
 # First, find old install dir(s)
 # Should only be a single dir, but we'll treat it as many just in case there were ever some errors
@@ -205,7 +227,7 @@ for serviceName in currentServices:
 
 
 # THEN, create nginx config!
-nginxConf = buildNginxConf(newInstallDir, appsByDomain, letsencryptThumbprint)
+nginxConf = buildNginxConf(newInstallDir, thingsByDomain, letsencryptThumbprint)
 
 # (Don't write it unless the conf building actually succeeded above)
 with open(constants.NGINX_CONF_PATH, "w") as fp:

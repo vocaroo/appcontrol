@@ -12,18 +12,26 @@ def getCertFullchainPath(domain):
 # Get the set of all domains used by an entire deployment (list of server definitions)
 def getAllDomains(servers):
 	domainSet = set()
+	
 	for server in servers:
-		for appInfo in server["apps"]:
-			if "domain" in appInfo:
-				domainSet.add(appInfo["domain"])
+		domainSet.update(getDomainsInServer(server))
+	
 	return domainSet
 
 # Get set of domains required by a single server/host
 def getDomainsInServer(server):
 	domainSet = set()
-	for appInfo in server["apps"]:
-		if "domain" in appInfo:
-			domainSet.add(appInfo["domain"])
+	
+	if "apps" in server:
+		for appInfo in server["apps"]:
+			if "domain" in appInfo:
+				domainSet.add(appInfo["domain"])
+	
+	if "redirects" in server:
+		for redirect in server["redirects"]:
+			if "domain" in redirect:
+				domainSet.add(redirect["domain"])
+
 	return domainSet
 
 def readDeployConfigFromDir(deploymentName, dirPath):

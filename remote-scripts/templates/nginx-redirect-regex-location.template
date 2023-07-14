@@ -1,0 +1,4 @@
+# Redirect with regex
+location ~ ###REGEX### {
+	return ###REDIRECT_CODE### ###REDIRECT_URL###;
+}

@@ -1,0 +1,4 @@
+# Root level redirect
+location / {
+	return ###REDIRECT_CODE### ###REDIRECT_URL###;
+}

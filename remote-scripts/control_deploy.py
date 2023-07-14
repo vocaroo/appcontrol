@@ -51,25 +51,33 @@ def checkForWebPathConflicts():
 	# For each host IP
 	for host, servers in serversByHost.items():
 		domainAndWebPathSet = set()
+		domainAndWebPathList = []
 		
-		# For all apps on this host
+		# Get all domain and web path combos in this host
 		for server in servers:
-			for appInfo in server["apps"]:
-				domain = appInfo.get("domain", None)
-				webPath = appInfo.get("webPath", "/")
-				
-				if domain:
-					# Check for duplicates!
-					hash = domain + webPath
-					
-					if hash in domainAndWebPathSet:
-						print("Same domain and webPath used in more than one app on the same server.")
-						print(hash)
-						print("Deployment aborted.")
-						print("Please fix the problem and re-deploy.")						
-						sys.exit(1)
-					
-					domainAndWebPathSet.add(hash)
+			if "apps" in server:
+				for appInfo in server["apps"]:
+					if "domain" in appInfo:
+						domainAndWebPathList.append((appInfo["domain"], appInfo.get("webPath", "/")))
+			
+			if "redirects" in server:
+				for redirectInfo in server["redirects"]:
+					# A redirect always uses the root path "/" if it doesn't have a regex
+					if "domain" in redirectInfo and not "regex" in redirectInfo:
+						domainAndWebPathList.append((redirectInfo["domain"], "/"))
+		
+		for domain, webPath in domainAndWebPathList:
+			# Check for duplicates!
+			hash = domain + webPath
+			
+			if hash in domainAndWebPathSet:
+				print("Same domain and webPath used in more than one app or redirect on the same server.")
+				print(hash)
+				print("Deployment aborted.")
+				print("Please fix the problem and re-deploy.")						
+				sys.exit(1)
+			
+			domainAndWebPathSet.add(hash)
 
 checkForWebPathConflicts()
 
@@ -217,6 +225,11 @@ async def deploy():
 		
 		tempDir = tempfile.TemporaryDirectory()
 		tempDirs.append(tempDir)
+		
+		# Write out the server block config, to be copied to host
+		# This was added for redirects
+		with open(tempDir.name + "/server.json", "w") as fp:
+			json.dump(server, fp, indent = "\t")
 
 		# Copy all apps for this server and deployment to a temp dir
 		for appInfo in server["apps"]:
