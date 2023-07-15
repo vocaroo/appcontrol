@@ -71,7 +71,7 @@ yargs(process.argv.slice(2))
 	})
 	.command("hello", "...", {}, (argv) => {
 		console.log(fs.readFileSync(__dirname + "/.vocaroo-ascii-art", {encoding : "utf8"}));
-		console.log("               Hello there!\n");
+		console.log("               Hello from Vocaroo!\n");
 	})
 	.demandCommand(1, "Hey there, how are you?")
 	.help()
