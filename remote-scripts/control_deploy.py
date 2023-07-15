@@ -258,6 +258,13 @@ async def deploy():
 			if "env" in targetConfig: # override with global env from the deploy target
 				env.update(targetConfig["env"])
 			
+			# client/server specific. Only web apps have envClient, only server apps have envServer.
+			if "envClient" in targetConfig and appMeta["isWebApp"] == True:
+				env.update(targetConfig["envClient"])
+			
+			if "envServer" in targetConfig and appMeta["isWebApp"] == False:
+				env.update(targetConfig["envServer"])
+			
 			# envShared
 			if "envShared" in targetConfig:
 				for shared in targetConfig["envShared"]:
