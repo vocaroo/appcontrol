@@ -90,6 +90,11 @@ function validatedConfig() {
 	}
 
 	validated.letsencrypt = config.letsencrypt;
+	validated.env = config.env;
+	validated.envClient = config.envClient;
+	validated.envServer = config.envServer;
+	validated.envShared = config.envShared;
+	validated.envApp = config.envApp;
 
 	return validated;
 }

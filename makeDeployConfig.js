@@ -5,10 +5,12 @@
 module.exports = function(config, target) {
 	let deployConfig = {};
 	
-	// Copy letsencrypt block
-	if (config.letsencrypt) {
-		deployConfig.letsencrypt = config.letsencrypt;
-	}
+	deployConfig.letsencrypt = config.letsencrypt;
+	deployConfig.env = config.env;
+	deployConfig.envClient = config.envClient;
+	deployConfig.envServer = config.envServer;
+	deployConfig.envShared = config.envShared;
+	deployConfig.envApp = config.envApp;
 	
 	// Copy only the relevant deploy target block
 	deployConfig.deployment = config.deployments[target];

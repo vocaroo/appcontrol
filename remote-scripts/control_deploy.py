@@ -214,6 +214,29 @@ def fileInjectEnv(dirPath, testRegex, env):
 				
 				Path(dirent.path).write_text(fileContents)
 
+
+def overloadAppEnvFromConfig(env, config, appName, isWebApp):
+	if "env" in config: # start with global env that applies to all apps
+		env.update(config["env"])
+	
+	# client/server specific. Only web apps have envClient, only server apps have envServer.
+	if "envClient" in config and isWebApp == True:
+		env.update(config["envClient"])
+	
+	if "envServer" in config and isWebApp == False:
+		env.update(config["envServer"])
+	
+	# envShared, env that applies to groups of named apps
+	if "envShared" in config:
+		for shared in config["envShared"]:
+			if appName in shared["apps"]:
+				env.update(shared["env"])
+	
+	# finally override with envApp, shared by all apps of this name
+	if "envApp" in config and appName in config["envApp"]:
+		env.update(config["envApp"][appName])
+
+
 # Now want to rsync to each host!
 async def deploy():
 	# Now sync *ONLY* the desired apps and their SSL certs to each host
@@ -255,25 +278,13 @@ async def deploy():
 			# combine and inject ENV vars from the deploy config
 			env = appMeta.get("env", {}) # start with existing app.json env
 			
-			if "env" in targetConfig: # override with global env from the deploy target
-				env.update(targetConfig["env"])
+			# Overload env with env from different places in the deployment config
+			# First overload with top level env (used across all deployments)
+			overloadAppEnvFromConfig(env, deployConfig, appName, appMeta["isWebApp"])
 			
-			# client/server specific. Only web apps have envClient, only server apps have envServer.
-			if "envClient" in targetConfig and appMeta["isWebApp"] == True:
-				env.update(targetConfig["envClient"])
-			
-			if "envServer" in targetConfig and appMeta["isWebApp"] == False:
-				env.update(targetConfig["envServer"])
-			
-			# envShared
-			if "envShared" in targetConfig:
-				for shared in targetConfig["envShared"]:
-					if appName in shared["apps"]:
-						env.update(shared["env"])
-			
-			if "envApp" in targetConfig and appName in targetConfig["envApp"]: # override with envApp, shared by all of this app name
-				env.update(targetConfig["envApp"][appName])
-			
+			# Then overload with env specific to this named deployment
+			overloadAppEnvFromConfig(env, targetConfig, appName, appMeta["isWebApp"])
+
 			if "env" in appInfo: # override with specific to this app instance in the server definition
 				env.update(appInfo["env"])
 			
