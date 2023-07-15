@@ -50,11 +50,20 @@ function getReleaseDir() {
 	}
 }
 
+function getSSHKeyPath() {
+	if (config.sshKey) {
+		return config.sshKey;
+	}
+	
+	return path.join(process.env.HOME, ".ssh/id_ed25519");
+}
+
 function validatedConfig() {
 	let validated = {};
 	
 	validated.name = getProjectName(config);
 	validated.releaseDir = getReleaseDir(config);
+	validated.sshKey = getSSHKeyPath();
 	
 	if (config.deployments) {
 		validated.deployments = {};

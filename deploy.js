@@ -10,18 +10,18 @@ const constants = require("./constants.js");
 const {globalDB, localDB} = require("./db.js");
 const resetServer = require("./resetServer.js");
 const makeDeployConfig = require("./makeDeployConfig.js");
-const {getNumberedReleaseDir, getSSHKeyPath, getControlKeyPath, hostToProp} = require("./utils.js");
+const {getNumberedReleaseDir, getControlKeyPath, hostToProp} = require("./utils.js");
 const config = require("./config.js");
 
 const REMOTE_SCRIPT_DIR = "appcontrol-master-scripts"; // directory only present on the control or master server
 const REMOTE_DEPLOYMENTS_INCOMING_DIR = "appcontrol-master-deployments-incoming";
-const MAIN_SSH_PRIVATE_KEY = fs.readFileSync(getSSHKeyPath());
+const MAIN_SSH_PRIVATE_KEY = fs.readFileSync(config.sshKey);
 const exec = util.promisify(child_process.exec);
 
 // sourceDir can be an array of sources
 function rsync(host, sourceDir, destDir, extraArgs = []) {
 	return new Promise((resolve, reject) => {
-		let remoteShell = "ssh -oBatchMode=yes -i " + getSSHKeyPath();
+		let remoteShell = "ssh -oBatchMode=yes -i " + config.sshKey;
 		let dest = "root@" + host + ":" + destDir;
 
 		let rsyncProcess = child_process.spawn(
@@ -137,12 +137,12 @@ async function copyControlKeyToHost(target, host) {
 
 	let keyPath = getControlKeyPath(target);
 	
-	// This is untested when getSSHKeyPath is anything other than the default ID
+	// This is untested when config.sshKey is anything other than the default ID
 	// -f is required due to some... issues.... with the key not getting copied
 	// (possibly due to ssh seeing that the IdentityFile works for login, despite the key we want to copy being different. not sure about that though!)
 	// The copied status check above should prevent it being added again anyway.
 	// It does mean if the local appcontrol state is deleted it could be added more than once.
-	const {stdout, stderr} = await exec(`ssh-copy-id -i "${keyPath}" -o 'IdentityFile "${getSSHKeyPath()}"' -f root@${host}`);
+	const {stdout, stderr} = await exec(`ssh-copy-id -i "${keyPath}" -o 'IdentityFile "${config.sshKey}"' -f root@${host}`);
 	//printStdLines(stdout.toString());
 	//printStdLines(stderr.toString());
 

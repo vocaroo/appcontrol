@@ -43,12 +43,6 @@ function getNumberedReleaseDir(releaseDir, releaseNumber) {
 	return releaseDir + `/release-${releaseNumber}`;
 }
 
-// Could check config for a ssh key path too, before falling back to .ssh dir
-// should probably throw an error if none exist
-function getSSHKeyPath() {
-	return path.join(process.env.HOME, ".ssh/id_ed25519");
-}
-
 // a key used by control server to access other servers
 // unique for each deploy target
 function getControlKeyPath(target) {
@@ -64,7 +58,6 @@ module.exports = {
 	validateAppName,
 	appNameFromDir,
 	getNumberedReleaseDir,
-	getSSHKeyPath,
 	getControlKeyPath,
 	hostToProp
 };
