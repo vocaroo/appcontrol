@@ -258,6 +258,12 @@ async def deploy():
 			if "env" in targetConfig: # override with global env from the deploy target
 				env.update(targetConfig["env"])
 			
+			# envShared
+			if "envShared" in targetConfig:
+				for shared in targetConfig["envShared"]:
+					if appName in shared["apps"]:
+						env.update(shared["env"])
+			
 			if "envApp" in targetConfig and appName in targetConfig["envApp"]: # override with envApp, shared by all of this app name
 				env.update(targetConfig["envApp"][appName])
 			
