@@ -69,6 +69,10 @@ yargs(process.argv.slice(2))
 		console.log("This host has been reset. Run deploy now.");
 		console.log("If the server OS was reinstalled remember to update the fingerprint in the config file wherever necessary or deployment will fail.")
 	})
+	.command("hello", "...", {}, (argv) => {
+		console.log(fs.readFileSync(__dirname + "/.vocaroo-ascii-art", {encoding : "utf8"}));
+		console.log("               Hello there!\n");
+	})
 	.demandCommand(1, "Hey there, how are you?")
 	.help()
 	.argv;
