@@ -51,10 +51,23 @@ function getReleaseDir() {
 }
 
 function getSSHKeyPath() {
+	// Key specified in config?
 	if (config.sshKey) {
 		return config.sshKey;
 	}
 	
+	// Otherwise, was there a key in global store?
+	const globalKey = globalDB.get("sshKey").value();
+	
+	if (globalKey) {
+		if (path.isAbsolute(globalKey)) {
+			return globalKey;
+		} else {
+			return path.join(process.env.HOME, globalKey);
+		}
+	}
+	
+	// Otherwise, try this one
 	return path.join(process.env.HOME, ".ssh/id_ed25519");
 }
 
