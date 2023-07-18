@@ -1,6 +1,6 @@
 import json, os, sys
 import constants
-from utils import getProjectNameAndTarget, hostFromServer
+from utils import getProjectNameAndTarget
 from pssh.clients import ParallelSSHClient
 
 def getCertPrivkeyPath(domain):
@@ -80,6 +80,17 @@ def getServersByHost(servers): # group by IP
 			serversByHost[host] = [server]
 	
 	return serversByHost
+
+def hostFromServer(server):
+	assert("ipv6" in server or "ipv4" in server)
+	
+	if "ipv6" in server:
+		return server["ipv6"]
+	else:
+		return server["ipv4"]
+
+def hostsFromServers(servers):
+	return [hostFromServer(server) for server in servers]
 
 # Write correct host fingerprints to known_hosts
 # This must be done for *all* deployments on this control server, not just the one that is currently being deployed.

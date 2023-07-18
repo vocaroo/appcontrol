@@ -3,7 +3,10 @@ import os, json, secrets, shutil, importlib, glob, sys, pwd
 import constants
 from pathlib import Path
 from utils import runCommand, ConfigStore
-from host_utils import fromTemplate, loadRuntimes, getAppInstalledPath, getInstanceCount, getServiceName, formatEnvForSystemd, genUserName, genDataGroupUserName, getAppLogDir, getAppDataDir, getAppTempDir
+from host_utils import (
+	fromTemplate, loadRuntimes, getAppInstalledPath, getInstanceCount, getServiceName, formatEnvForSystemd,
+	genUserName, genDataGroupUserName, getAppLogDir, getAppDataDir, getAppTempDir
+)
 from build_nginx_config import buildNginxConf
 
 print("Will install apps on this server!")
