@@ -8,7 +8,7 @@ localConf = ConfigStore(constants.CONTROLSERVER_CONF_PATH)
 # Check this before we import anything that uses non-standard modules (i.e. parallel-ssh)
 assert localConf.get("initialised") != None, "Control server was not correctly initialised. Perhaps the reset command needs to be called."
 
-from utils import getProjectNameAndTarget, rsync, getDeploymentKey, runCommand, hostsFromServers, localRsync
+from utils import getProjectNameAndTarget, rsync, getDeploymentKey, runCommand, hostsFromServers, localRsync, hostFromServer
 from control_utils import readDeployConfig, serversFromDeployConfig, getCertPrivkeyPath, getCertFullchainPath, getAllDomains, getDomainsInServer, runOnAllHosts, writeKnownHosts, getServersByHost, readServers, readServersIncoming, getAllDeployments
 
 email = sys.argv[1]
@@ -244,7 +244,7 @@ async def deploy():
 	tempDirs = []
 
 	for server in servers:
-		host = server["ip"]
+		host = hostFromServer(server)
 		
 		tempDir = tempfile.TemporaryDirectory()
 		tempDirs.append(tempDir)

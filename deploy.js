@@ -10,7 +10,7 @@ const constants = require("./constants.js");
 const {globalDB, localDB} = require("./db.js");
 const resetServer = require("./resetServer.js");
 const makeDeployConfig = require("./makeDeployConfig.js");
-const {getNumberedReleaseDir, getControlKeyPath, hostToProp} = require("./utils.js");
+const {getNumberedReleaseDir, getControlKeyPath, hostFromServer} = require("./utils.js");
 const config = require("./config.js");
 
 const REMOTE_SCRIPT_DIR = "appcontrol-master-scripts"; // directory only present on the control or master server
@@ -22,7 +22,7 @@ const exec = util.promisify(child_process.exec);
 function rsync(host, sourceDir, destDir, extraArgs = []) {
 	return new Promise((resolve, reject) => {
 		let remoteShell = "ssh -oBatchMode=yes -i " + config.sshKey;
-		let dest = "root@" + host + ":" + destDir;
+		let dest = "root@[" + host + "]:" + destDir;
 
 		let rsyncProcess = child_process.spawn(
 			"rsync",
@@ -130,8 +130,8 @@ function ensureControlKey(target) {
 	}
 }
 
-async function copyControlKeyToHost(target, host) {
-	if (localDB.get(`controlKeyCopiedStatus.${target}.${hostToProp(host)}`).value()) {
+async function copyControlKeyToHost(target, serverId, host) {
+	if (localDB.get(`controlKeyCopiedStatus.${target}.${serverId}`).value()) {
 		return; // Already copied for this target
 	}
 
@@ -147,13 +147,13 @@ async function copyControlKeyToHost(target, host) {
 	//printStdLines(stderr.toString());
 
 	console.log("Copied key to", host);
-	localDB.set(`controlKeyCopiedStatus.${target}.${hostToProp(host)}`, true)
+	localDB.set(`controlKeyCopiedStatus.${target}.${serverId}`, true)
 		.write();
 }
 
 async function copyControlKeyToServers(target, servers) {
 	await Promise.all(servers.map(
-		server => copyControlKeyToHost(target, server.ip)
+		server => copyControlKeyToHost(target, server.uniqueId, hostFromServer(server))
 	));
 }
 
@@ -226,19 +226,20 @@ module.exports = async function(target, releaseNumber = localDB.get("latestRelea
 	
 	// Check that fingerprint didn't change
 	for (let server of servers) {
-		let lastFingerprint = localDB.get(`lastFingerprints.${target}.${hostToProp(server.ip)}`).value();
+		let lastFingerprint = localDB.get(`lastFingerprints.${target}.${server.uniqueId}`).value();
 		
 		if (lastFingerprint && server.fingerprint != lastFingerprint) {
 			// It changed.
-			console.log(`Fingerprint for server ${server.ip} changed. Will re-init...`);
-			resetServer(server.ip);
+			console.log(`Fingerprint for server ${hostFromServer(server)} changed. Will re-init...`);
+			resetServer(server.uniqueId);
 		}
 		
-		localDB.set(`lastFingerprints.${target}.${hostToProp(server.ip)}`, server.fingerprint)
+		localDB.set(`lastFingerprints.${target}.${server.uniqueId}`, server.fingerprint)
 			.write();
 	}
 
 	let controlServer = servers[0];
+	let controlServerHost = hostFromServer(controlServer);
 	
 	// Ensure there is a ssh key for the control server
 	ensureControlKey(target);
@@ -251,14 +252,14 @@ module.exports = async function(target, releaseNumber = localDB.get("latestRelea
 	console.log("Checking control server...");
 
 	// Sync remote scripts to control server
-	await syncRemoteScripts(controlServer.ip);
+	await syncRemoteScripts(controlServerHost);
 	
 	// Init control server
-	if (!globalDB.get(`controlServerInitStatus.${hostToProp(controlServer.ip)}`).value()) {		
+	if (!globalDB.get(`controlServerInitStatus.${controlServer.uniqueId}`).value()) {		
 		console.log("Control server initialising...");
-		await runRemoteScript(controlServer.ip, "control_init.py " + email);
+		await runRemoteScript(controlServerHost, "control_init.py " + email);
 		
-		globalDB.set(`controlServerInitStatus.${hostToProp(controlServer.ip)}`, true)
+		globalDB.set(`controlServerInitStatus.${controlServer.uniqueId}`, true)
 			.write();
 	}
 
@@ -269,10 +270,10 @@ module.exports = async function(target, releaseNumber = localDB.get("latestRelea
 	const deployConfig = makeDeployConfig(config, target);
 	let {deploymentDir, purgeDeploymentDir} = bundleDeployment(deployConfig, target, releaseDir, appsUsed);
 
-	console.log("Deploying package to control server", controlServer.ip);
+	console.log("Deploying package to control server", controlServerHost);
 
 	try {
-		await syncDeployment(controlServer.ip, deploymentDir);
+		await syncDeployment(controlServerHost, deploymentDir);
 	} finally {
 		// Remove after has been deployed! May contain private keys.
 		purgeDeploymentDir();
@@ -281,7 +282,7 @@ module.exports = async function(target, releaseNumber = localDB.get("latestRelea
 	console.log("Control server deploying to others...");
 
 	// Init control server
-	await runRemoteScript(controlServer.ip, "control_deploy.py " + email + " " + getDeploymentName(target));
+	await runRemoteScript(controlServerHost, "control_deploy.py " + email + " " + getDeploymentName(target));
 	
 	console.log("Done.");
 }

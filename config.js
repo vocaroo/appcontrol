@@ -3,7 +3,7 @@ const path = require("path");
 const crypto = require("crypto");
 const fs = require("fs-extra");
 const constants = require("./constants.js");
-const {readJson, appNameFromDir, validateAppName} = require("./utils.js");
+const {readJson, appNameFromDir, validateAppName, getServerDefinition} = require("./utils.js");
 const {globalDB, localDB} = require("./db.js");
 
 const config = readJson(constants.LOCAL_CONFIG_FILE);
@@ -91,7 +91,7 @@ function validatedConfig() {
 			// Validation of all servers in a target
 			// Check for duplicate app names within a server
 			// Set some defaults
-			for (let server of deployBlock.servers) {
+			for (let server of Object.values(deployBlock.servers)) {
 				// Check for duplicate app names within server block
 				let appNameSet = new Set();
 
@@ -107,7 +107,28 @@ function validatedConfig() {
 				}
 			}
 			
+			// Convert key-value server definitions (server hostname or IP -> server block) into a simple array.
+			// Also reading the server IP, fingerprint etc from the globalDB.
+			
+			let serverArray = [];
+			
+			for (const [serverKey, server] of Object.entries(deployBlock.servers)) {
+				// The serverKey might be the hostname, ipv4 or ipv6 address.
+				let globalServerDef = getServerDefinition(serverKey);
+				
+				if (globalServerDef === null) {
+					console.log(`Server ${serverKey} not found in global server definitions. Maybe you need to add it first!`);
+					process.exit(1);
+				}
+				
+				serverArray.push({
+					...globalServerDef,
+					...server
+				});
+			}
+			
 			validated.deployments[target] = deployBlock;
+			validated.deployments[target].servers = serverArray;
 		}
 	}
 

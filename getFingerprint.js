@@ -13,6 +13,7 @@ module.exports = async function(hostIP) {
 		console.log("Fingerprint is:");
 		console.log(" " + fingerprint);
 		console.log("You should ideally check that via another channel too");
+		return fingerprint;
 	} else {
 		if (stdout) {
 			console.log(stdout.toString().trim());
@@ -23,5 +24,6 @@ module.exports = async function(hostIP) {
 		}
 
 		console.log("Error, could not get fingerprint!");
+		return null;
 	}
 }

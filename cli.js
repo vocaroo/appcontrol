@@ -8,6 +8,7 @@ fs.ensureDirSync(constants.LOCAL_DATA_DIR);
 const yargs = require("yargs/yargs");
 const readlineSync = require("readline-sync");
 const config = require("./config.js");
+const {getServerDefinition} = require("./utils.js");
 const {globalDB} = require("./db.js");
 
 function cmdRelease() {
@@ -60,11 +61,22 @@ yargs(process.argv.slice(2))
 		cmdRelease();
 		cmdDeploy(argv.target);
 	})
+	.command("addserver", "Add a server definition to the global database", {}, argv => {
+		require("./addServer.js")();
+	})
 	.command("get-fingerprint <hostIP>", "Get the ed25519 fingerprint of the specified host", {}, (argv) => {
 		require("./getFingerprint.js")(argv.hostIP);
 	})
-	.command("reset <hostIP>", "This must be called if a host or control server has been reinstalled or otherwise had its data removed", {}, (argv) => {
-		require("./resetServer.js")(argv.hostIP);
+	.command("reset <server>", "This must be called if a host or control server has been reinstalled or otherwise had its data removed.", {}, (argv) => {
+		const serverDef = getServerDefinition(argv.server);
+		
+		if (serverDef == null) {
+			console.log(`Error, server ${argv.server} not found in global database.`);
+			return;
+		}
+		
+		require("./resetServer.js")(serverDef.uniqueId);
+		
 		// alert that new fingerprint should also be set
 		console.log("This host has been reset. Run deploy now.");
 		console.log("If the server OS was reinstalled remember to update the fingerprint in the config file wherever necessary or deployment will fail.")

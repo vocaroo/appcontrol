@@ -2,6 +2,7 @@ const path = require("path");
 const assert = require("assert");
 const fs = require("fs-extra");
 const constants = require("./constants.js");
+const {globalDB} = require("./db.js");
 
 // Read json sync, returning empty object {} if no file existed
 // Also return {} if an empty file
@@ -49,8 +50,56 @@ function getControlKeyPath(target) {
 	return constants.CONTROL_KEY_DIR + "/" + target;
 }
 
-function hostToProp(host) { // turn an IP address into a string that can be used as a lowdb object property
-	return host.replace(/\./g, "-").replace(/:/g, "_");
+// Utility for informational output only
+function serverToStr(server) {
+	if (server.hostname) {
+		return server.hostname;
+	}
+	
+	if (server.ipv4) {
+		return server.ipv4;
+	}
+	
+	if (server.ipv6) {
+		return server.ipv6;
+	}
+	
+	return server.uniqueId;
+}
+
+function hostFromServer(server) {
+	assert(server.ipv6 || server.ipv4);
+	
+	if (server.ipv6) {
+		return server.ipv6;
+	} else {
+		return server.ipv4;
+	}
+}
+
+function getGlobalServerDefinitions() {
+	const serverGroups = globalDB.get("servers").value();
+	
+	// Combine all servers from different groups into one list
+	if (serverGroups) {
+		return Object.values(serverGroups).reduce((accum, value) => accum.concat(value), []);
+	}
+	
+	return [];
+}
+
+function getServerDefinition(serverKey) {
+	const serverInfos = getGlobalServerDefinitions();
+	
+	if (serverInfos.length > 0) {
+		for (let serverInfo of serverInfos) {
+			if (serverInfo.ipv4 === serverKey || serverInfo.ipv6 === serverKey || serverInfo.hostname === serverKey) {
+				return serverInfo;
+			}
+		}
+	}
+	
+	return null;
 }
 
 module.exports = {
@@ -59,5 +108,7 @@ module.exports = {
 	appNameFromDir,
 	getNumberedReleaseDir,
 	getControlKeyPath,
-	hostToProp
+	serverToStr,
+	hostFromServer,
+	getServerDefinition
 };

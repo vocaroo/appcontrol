@@ -1,6 +1,6 @@
 import json, os, sys
 import constants
-from utils import getProjectNameAndTarget
+from utils import getProjectNameAndTarget, hostFromServer
 from pssh.clients import ParallelSSHClient
 
 def getCertPrivkeyPath(domain):
@@ -72,7 +72,7 @@ def getServersByHost(servers): # group by IP
 	serversByHost = {}
 	
 	for server in servers:
-		host = server["ip"]
+		host = hostFromServer(server)
 		
 		if host in serversByHost:
 			serversByHost[host].append(server)
@@ -89,7 +89,10 @@ def writeKnownHosts():
 	with open(constants.KNOWN_HOSTS_PATH, "w") as fp:
 		for server in servers:
 			assert ("fingerprint" in server and len(server["fingerprint"]) > 0), "No fingerprint in server block"
-			fp.write(server["ip"] + " ssh-ed25519 " + server["fingerprint"] + "\n")
+			if "ipv4" in server:
+				fp.write(server["ipv4"] + " ssh-ed25519 " + server["fingerprint"] + "\n")
+			if "ipv6" in server:
+				fp.write(server["ipv6"] + " ssh-ed25519 " + server["fingerprint"] + "\n")
 
 def runCommandOnAllHosts(hosts, deploymentName, commandStr):
 	# We might want timeout and retry in future, but let's see if it's actually necessary.

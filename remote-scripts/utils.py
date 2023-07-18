@@ -7,8 +7,16 @@ def getProjectNameAndTarget(deploymentName):
 def getDeploymentKey(deploymentName):
 	return constants.CONTROLSERVER_DEPLOYMENTS_DIR + "/" + deploymentName + "/" + constants.CONTROL_KEY_NAME
 
+def hostFromServer(server):
+	assert("ipv6" in server or "ipv4" in server)
+	
+	if "ipv6" in server:
+		return server["ipv6"]
+	else:
+		return server["ipv4"]
+
 def hostsFromServers(servers):
-	return [server["ip"] for server in servers]
+	return [hostFromServer(server) for server in servers]
 
 def runCommand(args, addToEnv = None, returnCode = False):
 	env = None
@@ -50,7 +58,7 @@ def localRsync(sourceDir, destDir, extraArgs = []):
 
 async def rsync(host, keyPath, sourceDir, destDir, extraArgs = []):
 	remoteShell = "ssh -oBatchMode=yes -i " + keyPath
-	dest = "root@" + host + ":" + destDir;
+	dest = "root@[" + host + "]:" + destDir;
 
 	return await runCommandAsync([
 			"rsync",
