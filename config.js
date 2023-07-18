@@ -71,12 +71,27 @@ function getSSHKeyPath() {
 	return path.join(process.env.HOME, ".ssh/id_ed25519");
 }
 
+function getMasterServer() {
+	if (config.masterServer) {
+		return config.masterServer;
+	}
+	
+	const globalMasterServer = globalDB.get("masterServer").value();
+	
+	if (globalMasterServer) {
+		return globalMasterServer;
+	}
+	
+	return null;
+}
+
 function validatedConfig() {
 	let validated = {};
 	
-	validated.name = getProjectName(config);
-	validated.releaseDir = getReleaseDir(config);
+	validated.name = getProjectName();
+	validated.releaseDir = getReleaseDir();
 	validated.sshKey = getSSHKeyPath();
+	validated.masterServer = getMasterServer() || undefined;
 	
 	if (config.deployments) {
 		validated.deployments = {};

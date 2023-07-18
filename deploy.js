@@ -10,7 +10,7 @@ const constants = require("./constants.js");
 const {globalDB, localDB} = require("./db.js");
 const resetServer = require("./resetServer.js");
 const makeDeployConfig = require("./makeDeployConfig.js");
-const {getNumberedReleaseDir, getControlKeyPath, hostFromServer} = require("./utils.js");
+const {getNumberedReleaseDir, getControlKeyPath, hostFromServer, getServerDefinition} = require("./utils.js");
 const config = require("./config.js");
 
 const REMOTE_SCRIPT_DIR = "appcontrol-master-scripts"; // directory only present on the control or master server
@@ -210,6 +210,19 @@ function getAppsUsed(servers) {
 	return Array.from(appsUsed);
 }
 
+function chooseMasterServer(deployment) {
+	if (deployment.masterServer) {
+		return getServerDefinition(deployment.masterServer);
+	}
+	
+	if (config.masterServer) {
+		return getServerDefinition(config.masterServer);
+	}
+	
+	// Fall back to first server in the deployment
+	return deployment.servers[0];
+}
+
 module.exports = async function(target, releaseNumber = localDB.get("latestReleaseNum").value()) {
 	let releaseDir = getNumberedReleaseDir(config.releaseDir, releaseNumber);
 	console.log(`Deploying release number ${releaseNumber} to ${target}...`);
@@ -217,7 +230,8 @@ module.exports = async function(target, releaseNumber = localDB.get("latestRelea
 	let email = globalDB.get("email").value();
 	assert(email, "No email defined in conf");
 
-	let servers = config.deployments[target].servers;
+	const deployment = config.deployments[target];
+	const servers = deployment.servers;
 
 	if ( !(servers?.length > 0) ) {
 		console.log(`No servers for "${target}" found in config, nothing to do.`);
@@ -238,8 +252,10 @@ module.exports = async function(target, releaseNumber = localDB.get("latestRelea
 			.write();
 	}
 
-	let controlServer = servers[0];
+	let controlServer = chooseMasterServer(deployment);
 	let controlServerHost = hostFromServer(controlServer);
+	
+	console.log("Using master server", controlServer.hostname, controlServer.ipv4, controlServer.ipv6);
 	
 	// Ensure there is a ssh key for the control server
 	ensureControlKey(target);
