@@ -54,10 +54,10 @@ module.exports = async function cmdAddServer() {
 	
 	console.log("Getting server fingerprint...");
 	
-	if (ipv4) {
-		fingerprint = await getFingerprint(ipv4);
-	} else {
+	if (ipv6) {
 		fingerprint = await getFingerprint(ipv6);
+	} else {
+		fingerprint = await getFingerprint(ipv4);
 	}
 	
 	let serverInfo = {ipv4, ipv6, hostname, fingerprint, uniqueId : crypto.randomUUID()};

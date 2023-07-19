@@ -31,6 +31,11 @@ function cmdDeploy(target) {
 	require("./deploy.js")(target).catch(error => {
 		console.log(error);
 		console.log("!!!!!!!!!! DEPLOYMENT FAILED !!!!!!!!!!");
+		
+		if (error.name == "HostVerificationError") {
+			console.log("Host key verification failed. If you reinstalled or reprovisioned the master server, "
+				+ "try running the reset server command.");
+		}
 	});
 }
 

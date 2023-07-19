@@ -18,6 +18,13 @@ const REMOTE_DEPLOYMENTS_INCOMING_DIR = "appcontrol-master-deployments-incoming"
 const MAIN_SSH_PRIVATE_KEY = fs.readFileSync(config.sshKey);
 const exec = util.promisify(child_process.exec);
 
+class HostVerificationError extends Error {
+	constructor(message) {
+		super(message);
+		this.name = "HostVerificationError";
+	}
+}
+
 // sourceDir can be an array of sources
 function rsync(host, sourceDir, destDir, extraArgs = []) {
 	return new Promise((resolve, reject) => {
@@ -34,17 +41,28 @@ function rsync(host, sourceDir, destDir, extraArgs = []) {
 				"--timeout=10"
 			].concat(extraArgs, sourceDir, dest)
 		);
-
-		rsyncProcess.stdout.on("data", (data) => {
+		
+		const stdoutOnData = (data) => {
 			console.log(data.toString());
-		});
-		rsyncProcess.stderr.on("data", (data) => {
+		}
+		
+		const stderrOnData = (data) => {
 			console.log(data.toString());
-		});
-		rsyncProcess.on("error", (error) => {
+			
+			if (data.toString().includes("Host key verification failed")) {
+				rsyncProcess.stdout.off("data", stdoutOnData);
+				rsyncProcess.stderr.off("data", stderrOnData);
+				rsyncProcess.off("error", processOnError);
+				rsyncProcess.off("close", processOnClose);
+				reject(new HostVerificationError(`Host ${host} key verification failed!`));
+			}
+		}
+		
+		const processOnError = (error) => {
 			reject(error);
-		});
-		rsyncProcess.on("close", (code) => {
+		}
+		
+		const processOnClose = (code) => {
 			if (code == 0) {
 				resolve();
 			} else {
@@ -54,7 +72,12 @@ function rsync(host, sourceDir, destDir, extraArgs = []) {
 					resolve(rsync(host, sourceDir, destDir, extraArgs));
 				}, 1000);
 			}
-		});
+		}
+
+		rsyncProcess.stdout.on("data", stdoutOnData);
+		rsyncProcess.stderr.on("data", stderrOnData);
+		rsyncProcess.on("error", processOnError);
+		rsyncProcess.on("close", processOnClose);
 	});
 }
 
