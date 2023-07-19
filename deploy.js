@@ -16,6 +16,7 @@ const config = require("./config.js");
 const REMOTE_SCRIPT_DIR = "appcontrol-master-scripts"; // directory only present on the control or master server
 const REMOTE_DEPLOYMENTS_INCOMING_DIR = "appcontrol-master-deployments-incoming";
 const MAIN_SSH_PRIVATE_KEY = fs.readFileSync(config.sshKey);
+const HOST_VERIFICATION_MATCH_STR = "Host key verification failed"; // Finding this in ssh output means verification failed
 const exec = util.promisify(child_process.exec);
 
 class HostVerificationError extends Error {
@@ -49,7 +50,7 @@ function rsync(host, sourceDir, destDir, extraArgs = []) {
 		const stderrOnData = (data) => {
 			console.log(data.toString());
 			
-			if (data.toString().includes("Host key verification failed")) {
+			if (data.toString().includes(HOST_VERIFICATION_MATCH_STR)) {
 				rsyncProcess.stdout.off("data", stdoutOnData);
 				rsyncProcess.stderr.off("data", stderrOnData);
 				rsyncProcess.off("error", processOnError);
@@ -165,9 +166,16 @@ async function copyControlKeyToHost(target, serverId, host) {
 	// (possibly due to ssh seeing that the IdentityFile works for login, despite the key we want to copy being different. not sure about that though!)
 	// The copied status check above should prevent it being added again anyway.
 	// It does mean if the local appcontrol state is deleted it could be added more than once.
-	const {stdout, stderr} = await exec(`ssh-copy-id -i "${keyPath}" -o 'IdentityFile "${config.sshKey}"' -f root@${host}`);
-	//printStdLines(stdout.toString());
-	//printStdLines(stderr.toString());
+	try {
+		const {stdout, stderr} = await exec(`ssh-copy-id -i "${keyPath}" -o 'IdentityFile "${config.sshKey}"' -f root@${host}`);
+	} catch (error) {
+		if (error.message.includes(HOST_VERIFICATION_MATCH_STR)) {
+			console.log(error.message);
+			throw new HostVerificationError(`Host ${host} key verification failed!`);
+		}
+		
+		throw error;
+	}
 
 	console.log("Copied key to", host);
 	localDB.set(`controlKeyCopiedStatus.${target}.${serverId}`, true)
