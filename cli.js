@@ -9,6 +9,7 @@ const yargs = require("yargs/yargs");
 const readlineSync = require("readline-sync");
 const config = require("./config.js");
 const {globalDB} = require("./db.js");
+const {HostVerificationError, RemoteScriptFailedError} = require("./errors.js");
 
 function cmdRelease() {
 	console.log("will release");
@@ -27,13 +28,21 @@ function cmdDeploy(target) {
 	}
 	
 	console.log(`Deploying to ${target}`);
-	require("./deploy.js")(target).catch(error => {
+	require("./deploy.js")(target).then(() => {
+		console.log("Done.");
+	}).catch(error => {
 		console.log(error);
 		console.log("!!!!!!!!!! DEPLOYMENT FAILED !!!!!!!!!!");
 		
-		if (error.name == "HostVerificationError") {
+		if (error instanceof HostVerificationError) {
 			console.log("Host key verification failed. If you reinstalled or reprovisioned the master server, "
 				+ "try running the reset server command.");
+		}
+		
+		if (error instanceof RemoteScriptFailedError && error.exitCode == constants.REMOTE_EXIT_CODE_CERT_FAILED) {
+			console.log("Certificate request failed!");
+			console.log("Maybe something is wrong with your letsencrypt config, or you didn't set up "
+					+ "DNS records from a domain to a server yet.");
 		}
 	});
 }

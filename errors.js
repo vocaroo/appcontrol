@@ -13,7 +13,18 @@ class ServerNotDefinedError extends Error {
 	}
 }
 
+class RemoteScriptFailedError extends Error {
+	constructor(scriptName, host, code) {
+		super(`Remote script ${scriptName} on server ${host} failed, exit code ${code}`);
+		this.name = "RemoteScriptFailedError";
+		this.scriptName = scriptName;
+		this.host = host;
+		this.exitCode = code;
+	}
+}
+
 module.exports = {
 	HostVerificationError,
-	ServerNotDefinedError
+	ServerNotDefinedError,
+	RemoteScriptFailedError
 };

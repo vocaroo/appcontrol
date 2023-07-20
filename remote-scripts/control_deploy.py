@@ -1,4 +1,4 @@
-import sys, json, asyncio, os, tempfile, shutil, re
+import sys, json, asyncio, os, tempfile, shutil, re, subprocess
 from pathlib import Path
 import constants
 from utils import ConfigStore
@@ -159,10 +159,17 @@ def issueCertsHTTP(domainSet):
 		]))
 
 def issueCerts(domainSet):
-	if letsencryptConfig and "dns_hook" in letsencryptConfig:
-		issueCertsDNS(domainSet)
-	else:
-		issueCertsHTTP(domainSet) # http is default if no config given
+	try:
+		if letsencryptConfig and "dns_hook" in letsencryptConfig:
+			issueCertsDNS(domainSet)
+		else:
+			issueCertsHTTP(domainSet) # http is default if no config given
+	except subprocess.CalledProcessError as error:
+		if error.returncode == 1:
+			print("Certificate request failed!")
+			sys.exit(2)
+		else:
+			raise error
 
 async def main():
 	await initHosts()

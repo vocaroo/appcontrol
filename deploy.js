@@ -11,7 +11,7 @@ const {globalDB, localDB} = require("./db.js");
 const makeDeployConfig = require("./makeDeployConfig.js");
 const {getNumberedReleaseDir, getControlKeyPath, hostFromServer, getServerDefinition} = require("./utils.js");
 const config = require("./config.js");
-const {HostVerificationError} = require("./errors.js");
+const {HostVerificationError, RemoteScriptFailedError} = require("./errors.js");
 
 const REMOTE_SCRIPT_DIR = "appcontrol-master-scripts"; // directory only present on the control or master server
 const REMOTE_DEPLOYMENTS_INCOMING_DIR = "appcontrol-master-deployments-incoming";
@@ -106,7 +106,7 @@ function runRemoteScript(host, scriptName) {
 					console.log(`Remote script ${scriptName} on ${host} was successful`);
 					resolve();
 				} else {
-					reject(Error(`Remote script ${scriptName} on server ${host} failed, exit code ${code}`));
+					reject(new RemoteScriptFailedError(scriptName, host, code));
 				}
 			}
 		}).start({
@@ -307,8 +307,6 @@ module.exports = async function(target, releaseNumber = localDB.get("latestRelea
 
 	console.log("Control server deploying to others...");
 
-	// Init control server
+	// After syncing package, run remote deploy script
 	await runRemoteScript(controlServerHost, "control_deploy.py " + email + " " + getDeploymentName(target));
-	
-	console.log("Done.");
 }

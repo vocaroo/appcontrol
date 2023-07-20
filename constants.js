@@ -8,3 +8,6 @@ exports.LOCAL_CONFIG_FILE = "appcontrol.json";
 exports.APP_META_FILE = "appMeta.json";
 exports.CONTROL_KEY_DIR = exports.LOCAL_DATA_DIR + "/keys";
 exports.KNOWN_HOSTS_PATH = path.join(os.homedir(), ".ssh/known_hosts");
+
+exports.REMOTE_EXIT_CODE_WEBPATH_CONFLICT = 1
+exports.REMOTE_EXIT_CODE_CERT_FAILED = 2
