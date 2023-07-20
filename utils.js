@@ -1,9 +1,14 @@
 const path = require("path");
 const assert = require("assert");
 const fs = require("fs-extra");
+const util = require("util");
+const child_process = require("child_process");
+const os = require("os");
+const fsp = require("fs").promises;
 const constants = require("./constants.js");
 const {globalDB} = require("./db.js");
 const {ServerNotDefinedError} = require("./errors.js");
+const exec = util.promisify(child_process.exec);
 
 // Read json sync, returning empty object {} if no file existed
 // Also return {} if an empty file
@@ -89,6 +94,27 @@ function getGlobalServerDefinitions() {
 	return [];
 }
 
+async function updateKnownHosts(hostIP, fingerprint) {
+	await exec(`ssh-keygen -R "${hostIP}"`);
+	await fsp.appendFile(constants.KNOWN_HOSTS_PATH, `${hostIP} ssh-ed25519 ${fingerprint}\n`);
+}
+
+// If fingerprint is not given, will use the current one from server
+// Otherwise, use the specified fingerprint
+async function updateKnownHostsForServer(server, fingerprint = null) {
+	if (fingerprint == null) {
+		fingerprint = server.fingerprint;
+	}
+	
+	if (server.ipv4) {
+		await updateKnownHosts(server.ipv4, fingerprint);
+	}
+	
+	if (server.ipv6) {
+		await updateKnownHosts(server.ipv6, fingerprint);
+	}
+}
+
 // Check there are no duplicates in array
 function allDifferent(array) {
 	return array.length === new Set(array).size;
@@ -140,6 +166,7 @@ module.exports = {
 	getControlKeyPath,
 	serverToStr,
 	hostFromServer,
+	updateKnownHostsForServer,
 	getServerDefinition,
 	getServerGroup
 };

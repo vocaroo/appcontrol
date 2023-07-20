@@ -3,7 +3,7 @@ const readlineSync = require("readline-sync");
 const ipRegex = require("ip-regex");
 const getFingerprint = require("./getFingerprint.js");
 const {globalDB} = require("./db.js");
-const {hostFromServer} = require("./utils.js");
+const {hostFromServer, updateKnownHostsForServer} = require("./utils.js");
 
 function checkNotAlreadyPresent(recordName, recordValue) {
 	const globalServers = globalDB.get("servers").value();
@@ -69,6 +69,9 @@ module.exports = async function cmdAddServer() {
 	globalDB.get(`servers.${group}`)
 		.push(serverInfo)
 		.write();
+	
+	console.log("Updating known_hosts...");
+	updateKnownHostsForServer(serverInfo);
 	
 	console.log("New server info", {...serverInfo, group});
 	console.log("Successfully added new server!");

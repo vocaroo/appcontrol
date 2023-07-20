@@ -5,6 +5,7 @@ const fs = require("fs-extra");
 const constants = require("./constants.js");
 const {readJson, appNameFromDir, validateAppName, getServerDefinition} = require("./utils.js");
 const {globalDB, localDB} = require("./db.js");
+const {ServerNotDefinedError} = require("./errors.js");
 
 const config = readJson(constants.LOCAL_CONFIG_FILE);
 
@@ -128,11 +129,20 @@ function validatedConfig() {
 			let serverArray = [];
 			
 			for (const [serverKey, server] of Object.entries(deployBlock.servers)) {
-				// The serverKey might be the hostname, ipv4 or ipv6 address.				
-				serverArray.push({
-					...getServerDefinition(serverKey),
-					...server
-				});
+				// The serverKey might be the hostname, ipv4 or ipv6 address.
+				try {				
+					serverArray.push({
+						...getServerDefinition(serverKey),
+						...server
+					});
+				} catch (error) {
+					if (error instanceof ServerNotDefinedError) {
+						console.log(`*** Warning: server ${serverKey} in deploy config was not found in server definitions. `
+								+ "This server will be ignored and will not be deployed to! ***\n");
+					} else {
+						throw error;
+					}
+				}
 			}
 			
 			validated.deployments[target] = deployBlock;

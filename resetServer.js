@@ -1,19 +1,6 @@
-const util = require("util");
-const child_process = require("child_process");
-const path = require("path");
-const os = require("os");
-const fsp = require("fs").promises;
 const {globalDB, localDB} = require("./db.js");
 const getFingerprint = require("./getFingerprint.js");
-const {getServerDefinition, getServerGroup, hostFromServer} = require("./utils.js");
-const exec = util.promisify(child_process.exec);
-
-const knownHostsPath = path.join(os.homedir(), ".ssh/known_hosts");
-
-async function updateKnownHosts(hostIP, fingerprint) {
-	await exec(`ssh-keygen -R "${hostIP}"`);
-	await fsp.appendFile(knownHostsPath, `${hostIP} ssh-ed25519 ${fingerprint}\n`);
-}
+const {getServerDefinition, getServerGroup, hostFromServer, updateKnownHostsForServer} = require("./utils.js");
 
 module.exports = async function(serverKey) {
 	const serverDef = getServerDefinition(serverKey);
@@ -53,17 +40,10 @@ module.exports = async function(serverKey) {
 		.assign({fingerprint : fingerprint})
 		.write();
 		
-	// Update local user's known_hosts
-	
 	console.log("Updating known_hosts");
 	
-	if (serverDef.ipv4) {
-		updateKnownHosts(serverDef.ipv4, fingerprint);
-	}
-	
-	if (serverDef.ipv6) {
-		updateKnownHosts(serverDef.ipv6, fingerprint);
-	}
+	// update with *new* fingerprint
+	updateKnownHostsForServer(serverDef, fingerprint);
 	
 	console.log("Done resetting server.");
 }
