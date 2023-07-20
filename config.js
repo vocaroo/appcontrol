@@ -128,16 +128,9 @@ function validatedConfig() {
 			let serverArray = [];
 			
 			for (const [serverKey, server] of Object.entries(deployBlock.servers)) {
-				// The serverKey might be the hostname, ipv4 or ipv6 address.
-				let globalServerDef = getServerDefinition(serverKey);
-				
-				if (globalServerDef === null) {
-					console.log(`Server ${serverKey} not found in global server definitions. Maybe you need to add it first!`);
-					process.exit(1);
-				}
-				
+				// The serverKey might be the hostname, ipv4 or ipv6 address.				
 				serverArray.push({
-					...globalServerDef,
+					...getServerDefinition(serverKey),
 					...server
 				});
 			}

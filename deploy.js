@@ -8,23 +8,16 @@ const tmp = require("tmp");
 const SSH = require("simple-ssh");
 const constants = require("./constants.js");
 const {globalDB, localDB} = require("./db.js");
-const resetServer = require("./resetServer.js");
 const makeDeployConfig = require("./makeDeployConfig.js");
 const {getNumberedReleaseDir, getControlKeyPath, hostFromServer, getServerDefinition} = require("./utils.js");
 const config = require("./config.js");
+const {HostVerificationError} = require("./errors.js");
 
 const REMOTE_SCRIPT_DIR = "appcontrol-master-scripts"; // directory only present on the control or master server
 const REMOTE_DEPLOYMENTS_INCOMING_DIR = "appcontrol-master-deployments-incoming";
 const MAIN_SSH_PRIVATE_KEY = fs.readFileSync(config.sshKey);
 const HOST_VERIFICATION_MATCH_STR = "Host key verification failed"; // Finding this in ssh output means verification failed
 const exec = util.promisify(child_process.exec);
-
-class HostVerificationError extends Error {
-	constructor(message) {
-		super(message);
-		this.name = "HostVerificationError";
-	}
-}
 
 // sourceDir can be an array of sources
 function rsync(host, sourceDir, destDir, extraArgs = []) {
@@ -269,20 +262,6 @@ module.exports = async function(target, releaseNumber = localDB.get("latestRelea
 		return;
 	}
 	
-	// Check that fingerprint didn't change
-	for (let server of servers) {
-		let lastFingerprint = localDB.get(`lastFingerprints.${target}.${server.uniqueId}`).value();
-		
-		if (lastFingerprint && server.fingerprint != lastFingerprint) {
-			// It changed.
-			console.log(`Fingerprint for server ${hostFromServer(server)} changed. Will re-init...`);
-			resetServer(server.uniqueId);
-		}
-		
-		localDB.set(`lastFingerprints.${target}.${server.uniqueId}`, server.fingerprint)
-			.write();
-	}
-
 	let controlServer = chooseMasterServer(deployment);
 	let controlServerHost = hostFromServer(controlServer);
 	

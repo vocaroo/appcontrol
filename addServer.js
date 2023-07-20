@@ -3,6 +3,7 @@ const readlineSync = require("readline-sync");
 const ipRegex = require("ip-regex");
 const getFingerprint = require("./getFingerprint.js");
 const {globalDB} = require("./db.js");
+const {hostFromServer} = require("./utils.js");
 
 function checkNotAlreadyPresent(recordName, recordValue) {
 	const globalServers = globalDB.get("servers").value();
@@ -49,16 +50,11 @@ module.exports = async function cmdAddServer() {
 	let group = readlineSync.question("Server group (optional, for organisational purposes only)\n: ", {defaultInput : "default"});
 	
 	// Get the fingerprint
-	
-	let fingerprint = null;
-	
+		
 	console.log("Getting server fingerprint...");
 	
-	if (ipv6) {
-		fingerprint = await getFingerprint(ipv6);
-	} else {
-		fingerprint = await getFingerprint(ipv4);
-	}
+	// make a dummy server object with just the two IPs so we can use hostFromServer to select the correct one
+	let fingerprint = await getFingerprint(hostFromServer({ipv4, ipv6}));
 	
 	let serverInfo = {ipv4, ipv6, hostname, fingerprint, uniqueId : crypto.randomUUID()};
 	

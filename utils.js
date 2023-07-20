@@ -3,6 +3,7 @@ const assert = require("assert");
 const fs = require("fs-extra");
 const constants = require("./constants.js");
 const {globalDB} = require("./db.js");
+const {ServerNotDefinedError} = require("./errors.js");
 
 // Read json sync, returning empty object {} if no file existed
 // Also return {} if an empty file
@@ -88,18 +89,47 @@ function getGlobalServerDefinitions() {
 	return [];
 }
 
+// Check there are no duplicates in array
+function allDifferent(array) {
+	return array.length === new Set(array).size;
+}
+
+function compareServerToKey(server, serverKey) {
+	// Ensure there is nothing stupid like a hostname that contains a wrong IP address, which would match
+	assert(allDifferent([server.ipv4, server.ipv6, server.hostname, server.uniqueId]));
+	
+	return (server.ipv4 === serverKey || server.ipv6 === serverKey || server.hostname === serverKey
+			|| server.uniqueId === serverKey);
+}
+
 function getServerDefinition(serverKey) {
 	const serverInfos = getGlobalServerDefinitions();
 	
 	if (serverInfos.length > 0) {
 		for (let serverInfo of serverInfos) {
-			if (serverInfo.ipv4 === serverKey || serverInfo.ipv6 === serverKey || serverInfo.hostname === serverKey) {
+			if (compareServerToKey(serverInfo, serverKey)) {
 				return serverInfo;
 			}
 		}
 	}
 	
-	return null;
+	throw new ServerNotDefinedError(serverKey);
+}
+
+function getServerGroup(serverKey) {
+	const serverGroups = globalDB.get("servers").value();
+	
+	if (serverGroups) {
+		for (const [group, serverInfos] of Object.entries(serverGroups)) {
+			for (let serverInfo of serverInfos) {
+				if (compareServerToKey(serverInfo, serverKey)) {
+					return group;
+				}
+			}
+		}
+	}
+	
+	throw new ServerNotDefinedError(serverKey);
 }
 
 module.exports = {
@@ -110,5 +140,6 @@ module.exports = {
 	getControlKeyPath,
 	serverToStr,
 	hostFromServer,
-	getServerDefinition
+	getServerDefinition,
+	getServerGroup
 };
