@@ -19,6 +19,12 @@ HOSTSERVER_APP_DATA_DIR = "/var/lib/" + TOOL_NAME_LOWERCASE + "/appdata"
 HOSTSERVER_APP_LOG_DIR = "/var/log/" + TOOL_NAME_LOWERCASE
 HOSTSERVER_APP_TEMP_DIR = "/tmp/" + TOOL_NAME_LOWERCASE
 
+# Exit codes
+REMOTE_EXIT_CODE_WEBPATH_CONFLICT = 1
+REMOTE_EXIT_CODE_CERT_FAILED = 2
+REMOTE_EXIT_CODE_HOST_COMMAND_FAILED = 3
+REMOTE_EXIT_CODE_HOST_VERIFICATION_FAILED = 4
+
 # Misc
 CONTROL_KEY_NAME = "control-key"
 KNOWN_HOSTS_PATH = ".ssh/known_hosts"
@@ -27,3 +33,4 @@ NGINX_CONF_PATH = "/etc/nginx/nginx.conf"
 NGINX_CONF_MAGIC = "---APPCONTROL_MAGIC_IDENT---"
 LOCAL_CONFIG_FILE = "appcontrol.json" # Ideally this should be copied acrosss from constants.js! (is repeated from there)
 ACME_SH_PATH = "/root/.acme.sh/acme.sh"
+HOST_VERIFICATION_MATCH_STR = "Host key verification failed"

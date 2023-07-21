@@ -35,14 +35,19 @@ function cmdDeploy(target) {
 		console.log("!!!!!!!!!! DEPLOYMENT FAILED !!!!!!!!!!");
 		
 		if (error instanceof HostVerificationError) {
-			console.log("Host key verification failed. If you reinstalled or reprovisioned the master server, "
-				+ "try running the reset server command.");
+			console.log("Host key verification of the master server failed. If you reinstalled or reprovisioned "
+				+ "the master server, try running the reset server command.");
 		}
 		
-		if (error instanceof RemoteScriptFailedError && error.exitCode == constants.REMOTE_EXIT_CODE_CERT_FAILED) {
-			console.log("Certificate request failed!");
-			console.log("Maybe something is wrong with your letsencrypt config, or you didn't set up "
-					+ "DNS records from a domain to a server yet.");
+		if (error instanceof RemoteScriptFailedError) {
+			if (error.exitCode == constants.REMOTE_EXIT_CODE_CERT_FAILED) {
+				console.log("Certificate request failed!");
+				console.log("Maybe something is wrong with your letsencrypt config, or you didn't set up "
+						+ "DNS records from a domain to a server yet.");
+			} else if (error.exitCode == constants.REMOTE_EXIT_CODE_HOST_VERIFICATION_FAILED) {
+				console.log("Host key verification of a server failed. If you reinstalled or reprovisioned a server, "
+					+ "try running the reset server command.");
+			}
 		}
 	});
 }

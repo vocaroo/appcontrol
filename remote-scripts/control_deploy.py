@@ -2,6 +2,7 @@ import sys, json, asyncio, os, tempfile, shutil, re, subprocess
 from pathlib import Path
 import constants
 from utils import ConfigStore
+from errors import HostVerificationError
 
 # A place to store some local state for control server
 localConf = ConfigStore(constants.CONTROLSERVER_CONF_PATH)
@@ -79,7 +80,7 @@ def checkForWebPathConflicts():
 				print(hash)
 				print("Deployment aborted.")
 				print("Please fix the problem and re-deploy.")						
-				sys.exit(1)
+				sys.exit(constants.REMOTE_EXIT_CODE_WEBPATH_CONFLICT)
 			
 			domainAndWebPathSet.add(hash)
 
@@ -167,22 +168,26 @@ def issueCerts(domainSet):
 	except subprocess.CalledProcessError as error:
 		if error.returncode == 1:
 			print("Certificate request failed!")
-			sys.exit(2)
+			sys.exit(constants.REMOTE_EXIT_CODE_CERT_FAILED)
 		else:
 			raise error
 
 async def main():
-	await initHosts()
-	
-	# Issue certs for those that have not already been issued (check for existance of cert)
-	# Must initHosts above first to set up nginx to handle letsencrypt challenge
-	domainsWithoutCerts = [domain for domain in domainSet if not os.path.isfile(getCertFullchainPath(domain))]
+	try:
+		await initHosts()
+		
+		# Issue certs for those that have not already been issued (check for existance of cert)
+		# Must initHosts above first to set up nginx to handle letsencrypt challenge
+		domainsWithoutCerts = [domain for domain in domainSet if not os.path.isfile(getCertFullchainPath(domain))]
 
-	if len(domainsWithoutCerts) > 0:
-		print("Issuing certs for the following domains", str(domainsWithoutCerts))
-		issueCerts(domainsWithoutCerts)
-	
-	await deploy()
+		if len(domainsWithoutCerts) > 0:
+			print("Issuing certs for the following domains", str(domainsWithoutCerts))
+			issueCerts(domainsWithoutCerts)
+		
+		await deploy()
+	except HostVerificationError as error:
+		print(error)
+		sys.exit(constants.REMOTE_EXIT_CODE_HOST_VERIFICATION_FAILED)
 
 async def initHosts():
 	# Sync all the control scripts to *all* hosts

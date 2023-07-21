@@ -1,4 +1,6 @@
 import asyncio, sys, subprocess, json, os, re
+from subprocess import CalledProcessError
+from errors import HostVerificationError
 import constants
 
 def getProjectNameAndTarget(deploymentName):
@@ -29,7 +31,7 @@ async def runCommandAsync(argList):
 
 	if proc.returncode != 0:
 		print(stderr.decode().strip())
-		raise RuntimeError("Command " + str(argList[0]) + " exited with non zero return code " + str(proc.returncode))
+		raise CalledProcessError(proc.returncode, argList[0], stdout.decode(), stderr.decode())
 
 	return stdout.decode().strip()
 
@@ -48,18 +50,24 @@ def localRsync(sourceDir, destDir, extraArgs = []):
 async def rsync(host, keyPath, sourceDir, destDir, extraArgs = []):
 	remoteShell = "ssh -oBatchMode=yes -i " + keyPath
 	dest = "root@[" + host + "]:" + destDir;
-
-	return await runCommandAsync([
-			"rsync",
-			"-rzl",
-			"-e", remoteShell,
-			"--delete",
-			"--checksum",
-			"--timeout=10"
-		]
-		+ extraArgs
-		+ [sourceDir, dest]
-	)
+	
+	try:
+		return await runCommandAsync([
+				"rsync",
+				"-rzl",
+				"-e", remoteShell,
+				"--delete",
+				"--checksum",
+				"--timeout=10"
+			]
+			+ extraArgs
+			+ [sourceDir, dest]
+		)
+	except CalledProcessError as error:
+		if constants.HOST_VERIFICATION_MATCH_STR in error.stderr:
+			raise HostVerificationError(host)
+		else:
+			raise error
 
 # Simple on disk key-value store
 class ConfigStore:

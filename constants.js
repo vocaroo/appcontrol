@@ -9,5 +9,8 @@ exports.APP_META_FILE = "appMeta.json";
 exports.CONTROL_KEY_DIR = exports.LOCAL_DATA_DIR + "/keys";
 exports.KNOWN_HOSTS_PATH = path.join(os.homedir(), ".ssh/known_hosts");
 
+// Remote server script exit codes
 exports.REMOTE_EXIT_CODE_WEBPATH_CONFLICT = 1
 exports.REMOTE_EXIT_CODE_CERT_FAILED = 2
+exports.REMOTE_EXIT_CODE_HOST_COMMAND_FAILED = 3
+exports.REMOTE_EXIT_CODE_HOST_VERIFICATION_FAILED = 4

@@ -133,4 +133,4 @@ def runCommandOnAllHosts(hosts, deploymentName, commandStr):
 # Also exits if anything fails, this is currently assumed to only be used by deploy script
 def runOnAllHosts(hosts, deploymentName, scriptName):
 	if not runCommandOnAllHosts(hosts, deploymentName, "python3 -B " + constants.HOSTSERVER_SCRIPTS_DIR + "/" + scriptName):
-		sys.exit(3)
+		sys.exit(constants.REMOTE_EXIT_CODE_HOST_COMMAND_FAILED)
