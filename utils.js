@@ -114,10 +114,9 @@ function allDifferent(array) {
 
 function compareServerToKey(server, serverKey) {
 	// Ensure there is nothing stupid like a hostname that contains a wrong IP address, which would match
-	assert(allDifferent([server.ipv4, server.ipv6, server.hostname, server.uniqueId]));
+	assert(allDifferent(constants.VALID_SERVER_KEYS.map(key => server[key])));
 	
-	return (server.ipv4 === serverKey || server.ipv6 === serverKey || server.hostname === serverKey
-			|| server.uniqueId === serverKey);
+	return constants.VALID_SERVER_KEYS.map(key => server[key]).includes(serverKey);
 }
 
 function getServerDefinition(serverKey) {
