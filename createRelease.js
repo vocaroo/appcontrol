@@ -24,7 +24,7 @@ module.exports = async function() {
 				
 		app.appMeta = {
 			...detectorDefaults,
-			...readJson(`${app.dir}/app.json`) // Override with app.json, if one exists
+			...readJson(`${app.dir}/${constants.APP_CONFIG_FILE}`) // Override with app.json, if one exists
 		};
 		
 		// If it doesn't have a "main", then it's a web app.
@@ -85,7 +85,7 @@ module.exports = async function() {
 		// If we just copied the entire source dir, then remove any app.json that was copied across
 		if (app.usedOriginalDir) {
 			try {
-				fs.unlinkSync(appTmpReleaseDir + "/app.json");
+				fs.unlinkSync(`${appTmpReleaseDir}/${constants.APP_CONFIG_FILE}`);
 			} catch (error) {
 				if (error.code != "ENOENT") {
 					throw error;

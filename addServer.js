@@ -21,7 +21,7 @@ function checkNotAlreadyPresent(recordName, recordValue) {
 }
 
 module.exports = async function cmdAddServer() {
-	let ipv4 = readlineSync.question("IPv4 address (optional)\n: ");
+	let ipv4 = readlineSync.question("IPv4 address (optional)\n> ");
 	
 	if (ipv4 && !ipRegex.v4({exact : true}).test(ipv4)) {
 		console.log("Invalid IPv4 address.");
@@ -30,7 +30,7 @@ module.exports = async function cmdAddServer() {
 	
 	checkNotAlreadyPresent("ipv4", ipv4);
 	
-	let ipv6 = readlineSync.question("IPv6 address (optional, recommended)\n: ");
+	let ipv6 = readlineSync.question("IPv6 address (optional, recommended)\n> ");
 	
 	if (ipv6 && !ipRegex.v6({exact : true}).test(ipv6)) {
 		console.log("Invalid IPv6 address.");
@@ -44,10 +44,10 @@ module.exports = async function cmdAddServer() {
 		return;
 	}
 	
-	let hostname = readlineSync.question("Hostname (optional, can be used instead of IP address to identify servers)\n: ");
+	let hostname = readlineSync.question("Hostname (optional, can be used instead of IP address to identify servers)\n> ");
 	checkNotAlreadyPresent("hostname", hostname);
 	
-	let group = readlineSync.question("Server group (optional, for organisational purposes only)\n: ", {defaultInput : "default"});
+	let group = readlineSync.question("Server group (optional, for organisational purposes only)\n> ", {defaultInput : "default"});
 	
 	// Get the fingerprint
 		

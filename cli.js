@@ -61,6 +61,9 @@ yargs(process.argv.slice(2))
 
 		console.log("Detected apps: ", apps.map(appInfo => appInfo.name));
 	})
+	.command("init", "Create a basic deployment config in the current directory", {}, (argv) => {
+		require("./init.js")();
+	})
 	.command("release", "Create a numbered release", {}, argv => {
 		cmdRelease();
 	})

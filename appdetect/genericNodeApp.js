@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const constants = require("../constants.js");
 const {readJson} = require("../utils.js");
 
 exports.defaults = {
@@ -12,7 +13,7 @@ exports.defaults = {
 // or if there is no main specified, we check for the existence of server.js
 
 exports.detect = function(dirPath) {
-	let appJson = readJson(`${dirPath}/app.json`);
+	let appJson = readJson(`${dirPath}/${constants.APP_CONFIG_FILE}`);
 	
 	if ("main" in appJson) {
 		// Detect if main in app.json exists and is a JS file

@@ -62,15 +62,7 @@ function serverToStr(server) {
 		return server.hostname;
 	}
 	
-	if (server.ipv4) {
-		return server.ipv4;
-	}
-	
-	if (server.ipv6) {
-		return server.ipv6;
-	}
-	
-	return server.uniqueId;
+	return hostFromServer(server);
 }
 
 function hostFromServer(server) {
@@ -167,6 +159,7 @@ module.exports = {
 	serverToStr,
 	hostFromServer,
 	updateKnownHostsForServer,
+	getGlobalServerDefinitions,
 	getServerDefinition,
 	getServerGroup
 };

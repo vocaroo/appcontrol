@@ -1,6 +1,7 @@
 const fs = require("fs-extra");
 const path = require("path");
 const assert = require("assert");
+const constants = require("./constants.js");
 const {appNameFromDir} = require("./utils.js");
 
 const EXCLUDED_DIRS = new Set(["node_modules"]);
@@ -43,7 +44,7 @@ module.exports = function findApps(startPath = "./") {
 
 		// Either detected by an appdetector OR
 		// not auto detected, but a custom app using an app.json file
-		if (detectedAs || fs.existsSync(`${dir}/app.json`)) {
+		if (detectedAs || fs.existsSync(`${dir}/${constants.APP_CONFIG_FILE}`)) {
 			let appInfo = {
 				name : appNameFromDir(dir),
 				dir : dir,
