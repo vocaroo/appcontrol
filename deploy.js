@@ -6,18 +6,20 @@ const assert = require("assert");
 const fs = require("fs-extra");
 const tmp = require("tmp");
 const SSH = require("simple-ssh");
+const readlineSync = require("readline-sync");
 const constants = require("./constants.js");
 const {globalDB, localDB} = require("./db.js");
 const makeDeployConfig = require("./makeDeployConfig.js");
-const {getNumberedReleaseDir, getControlKeyPath, hostFromServer, getServerDefinition} = require("./utils.js");
+const {getNumberedReleaseDir, getControlKeyPath, hostFromServer, getServerDefinition, createKeyPair} = require("./utils.js");
 const config = require("./config.js");
 const {HostVerificationError, RemoteScriptFailedError} = require("./errors.js");
 
 const REMOTE_SCRIPT_DIR = "appcontrol-master-scripts"; // directory only present on the control or master server
 const REMOTE_DEPLOYMENTS_INCOMING_DIR = "appcontrol-master-deployments-incoming";
-const MAIN_SSH_PRIVATE_KEY = fs.readFileSync(config.sshKey);
 const HOST_VERIFICATION_MATCH_STR = "Host key verification failed"; // Finding this in ssh output means verification failed
 const exec = util.promisify(child_process.exec);
+
+let mainSshPrivateKey = null;
 
 // sourceDir can be an array of sources
 function rsync(host, sourceDir, destDir, extraArgs = []) {
@@ -94,7 +96,7 @@ function runRemoteScript(host, scriptName) {
 		let ssh = new SSH({
 			user : "root",
 			host : host,
-			key : MAIN_SSH_PRIVATE_KEY
+			key : mainSshPrivateKey
 		});
 
 		ssh.exec("python3 -B " + REMOTE_SCRIPT_DIR + "/" + path.basename(scriptName), {
@@ -139,8 +141,7 @@ function ensureControlKey(target) {
 				.write();
 
 			console.log(`Control key did not exist for ${target}, creating...`);
-			let stdout = child_process.execSync("ssh-keygen -t ed25519 -N \"\" -f" + keyPath);
-			console.log(stdout.toString());
+			createKeyPair(keyPath);
 		} else {
 			throw error;
 		}
@@ -248,6 +249,17 @@ function chooseMasterServer(deployment) {
 }
 
 module.exports = async function(target, releaseNumber = localDB.get("latestReleaseNum").value()) {
+	try {
+		mainSshPrivateKey = fs.readFileSync(config.sshKey);
+	} catch (error) {
+		if (error.code == "ENOENT") {
+			console.log(`\n*** Error: SSH key at path ${config.sshKey} did not exist! AppControl requires an ed25519 key,`
+					+ " which must be present on your servers. ***\n");
+			console.log("You can create this keypair by calling <appcontrol keygen>.");
+			return;
+		}
+	}
+	
 	let releaseDir = getNumberedReleaseDir(config.releaseDir, releaseNumber);
 	console.log(`Deploying release number ${releaseNumber} to ${target}...`);
 	

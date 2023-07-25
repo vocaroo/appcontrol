@@ -10,6 +10,7 @@ const readlineSync = require("readline-sync");
 const config = require("./config.js");
 const {globalDB} = require("./db.js");
 const {HostVerificationError, RemoteScriptFailedError} = require("./errors.js");
+const {createKeyPair} = require("./utils.js");
 
 function cmdRelease() {
 	console.log("will release");
@@ -52,6 +53,15 @@ function cmdDeploy(target) {
 	});
 }
 
+function cmdKeygen() {
+	if (fs.existsSync(config.sshKey)) {
+		console.log(`ssh key at path ${config.sshKey} already exists!`);
+	} else {
+		createKeyPair(config.sshKey);
+		console.log(`The key at ${config.sshKey} can now be used when provisioning your servers.`);
+	}
+}
+
 yargs(process.argv.slice(2))
 	.command("info", "Show info about deployment", {}, (argv) => {
 		console.log("Welcome to AppControl");
@@ -63,6 +73,9 @@ yargs(process.argv.slice(2))
 	})
 	.command("init", "Create a basic deployment config in the current directory", {}, (argv) => {
 		require("./init.js")();
+	})
+	.command("keygen", "Generate an ed25519 key pair at the location specified in your config files, or ~/.ssh otherwise", {}, (argv) => {
+		cmdKeygen();
 	})
 	.command("release", "Create a numbered release", {}, argv => {
 		cmdRelease();

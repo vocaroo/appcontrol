@@ -149,6 +149,10 @@ function getServerGroup(serverKey) {
 	throw new ServerNotDefinedError(serverKey);
 }
 
+function createKeyPair(keyPath) {
+	console.log(child_process.execSync(`ssh-keygen -t ed25519 -N "" -f "${keyPath}"`).toString());
+}
+
 module.exports = {
 	readJson,
 	validateAppName,
@@ -160,5 +164,6 @@ module.exports = {
 	updateKnownHostsForServer,
 	getGlobalServerDefinitions,
 	getServerDefinition,
-	getServerGroup
+	getServerGroup,
+	createKeyPair
 };
