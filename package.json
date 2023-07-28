@@ -1,7 +1,14 @@
 {
   "name": "AppControl",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "license": "MIT",
+  "description": "Tool for quick and easy deployment of client side and server apps to Ubuntu servers",
+  "keywords" : ["deploy", "servers", "build", "release"],
+  "homepage" : "https://github.com/vocaroo/appcontrol",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vocaroo/appcontrol.git"
+  },
   "bin": {
     "appcontrol": "./cli.js"
   },
