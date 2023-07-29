@@ -1,5 +1,5 @@
 {
-  "name": "AppControl",
+  "name": "appcontrol",
   "version": "0.0.1",
   "license": "MIT",
   "description": "Tool for quick and easy deployment of client side and server apps to Ubuntu servers",
