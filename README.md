@@ -347,6 +347,7 @@ A deployment block can contain the following properties:
 
 | property | description |
 | --- | --- |
+| letsencrypt | A letsencrypt block here will override any specified at the top level. |
 | masterServer | A masterServer specified here will override any specified at the top level. |
 | env* | Any of the env* properties can be here. Please see the environmental variables section. |
 | servers | This object will contain all the servers in this deployment, as key value pairs where the key is the IP address or hostname, and the value is a server block. |
