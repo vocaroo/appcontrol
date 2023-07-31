@@ -58,11 +58,13 @@ module.exports = async function cmdAddServer() {
 	
 	let serverInfo = {ipv4, ipv6, hostname, fingerprint, uniqueId : crypto.randomUUID()};
 	
+	if (!globalDB.has(`servers`).value()) {
+		globalDB.set("servers", {})
+			.write();
+	}
+	
 	if (!globalDB.has(`servers.${group}`).value()) {
-		let servers = {};
-		servers[group] = [];
-		
-		globalDB.set("servers", servers)
+		globalDB.set(`servers.${group}`, [])
 			.write();
 	}
 	
