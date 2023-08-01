@@ -1,6 +1,6 @@
 {
   "name": "appcontrol",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "license": "MIT",
   "description": "Tool for quick and easy deployment of client side and server apps to Ubuntu servers",
   "keywords" : ["deploy", "servers", "build", "release"],
