@@ -30,7 +30,7 @@ Some further things you might want to do / be aware of:
 
 - `appcontrol init` will create the deploy config file `appcontrol.json` in the current directory, and also an app specific config file `app.json` in your app's directory
 - make sure your app's domain has its DNS records propagated and pointing to the desired server before deploying, otherwise getting SSL certificates will fail (alternatively, appcontrol supports Letsencrypt DNS validation, but that requires a bit more configuration)
-- if your app has a build step, edit the `app.json` file in your app's directory to set the correct `buildCmd` and `buildDir`.  _create-react-apps are currently autodetected and will use the default CRA build command_.
+- if your app has a build step, edit the `app.json` file in your app's directory to set the correct `buildCmd` and `buildPath`.  _create-react-apps are currently autodetected and will use the default CRA build command_.
 
 # Future of Appcontrol
 
