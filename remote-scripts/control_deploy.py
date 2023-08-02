@@ -304,6 +304,9 @@ async def deploy():
 			if "env" in appInfo: # override with specific to this app instance in the server definition
 				env.update(appInfo["env"])
 			
+			# Special env var, for both web and server apps
+			env["APP_WEB_PATH"] = appMeta.get("webPath", "/").rstrip("/")
+			
 			appMeta["env"] = env
 			
 			with open(appTempDir + "/appMeta.json", "w") as fp:

@@ -100,9 +100,10 @@ AppControl provides server apps with some utility env vars:
 | environmental variable | description |
 | --- | --- |
 | PORT | All server apps will have a PORT variable set, which their domain and webPath will be routed too. Your server apps must use this port to listen on. If there are multiple instances of the app (e.g. an instance per CPU), they will each have a different listen port. Ports may change across restarts of your apps! |
-| APP_DATA_DIR | The path of a directory that your app has write access to and should use to store any data. Apps in the same dataGroup will be passed the same APP_DATA_DIR so they can share data |
-| APP_LOG_DIR | Similar to above, but a directory within `/var/log` that your app can write to |
-| APP_TEMP_DIR | Same as above, but a directory within `/tmp` |
+| APP_DATA_DIR | The path of a directory that your app has write access to and should use to store any data. Apps in the same dataGroup will be passed the same APP_DATA_DIR so they can share data. |
+| APP_LOG_DIR | Similar to above, but a directory within `/var/log` that your app can write to. |
+| APP_TEMP_DIR | Same as above, but a directory within `/tmp`. |
+| APP_WEB_PATH | The webPath as specified in the deploy config. Any trailing "/" will be stripped, so the root webPath will be an empty string. Useful for `<base href>` in web apps. |
 
 #### Env block examples
 
