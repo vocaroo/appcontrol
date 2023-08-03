@@ -120,6 +120,16 @@ function validatedConfig() {
 					
 					// Validate webPath, don't want weird stuff getting into nginx regex
 					assert(!appInfo.webPath || /^[-_a-zA-Z0-9/]+$/.test(appInfo.webPath), `webPath contained an invalid character: ${appInfo.webPath}`);
+					
+					// Transform any singular "domain" property into a domains array
+					if (appInfo.domain) {
+						if (!appInfo.domains) {
+							appInfo.domains = [];
+						}
+						
+						appInfo.domains.push(appInfo.domain);
+						delete appInfo.domain;
+					}
 				}
 			}
 			

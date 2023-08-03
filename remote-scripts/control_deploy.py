@@ -62,8 +62,9 @@ def checkForWebPathConflicts():
 		for server in servers:
 			if "apps" in server:
 				for appInfo in server["apps"]:
-					if "domain" in appInfo:
-						domainAndWebPathList.append((appInfo["domain"], appInfo.get("webPath", "/")))
+					if "domains" in appInfo:
+						for domain in appInfo["domains"]:
+							domainAndWebPathList.append((domain, appInfo.get("webPath", "/")))
 			
 			if "redirects" in server:
 				for redirectInfo in server["redirects"]:
@@ -287,7 +288,7 @@ async def deploy():
 				appMeta["deploymentName"] = deploymentName
 
 				# Copy certain keys from appInfo/config only if set
-				for keyName in ["domain", "webPath", "instancesPerCPU", "dataGroup"]:
+				for keyName in ["domains", "webPath", "instancesPerCPU", "dataGroup"]:
 					if keyName in appInfo:
 						appMeta[keyName] = appInfo[keyName]
 

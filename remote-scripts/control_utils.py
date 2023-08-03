@@ -24,8 +24,9 @@ def getDomainsInServer(server):
 	
 	if "apps" in server:
 		for appInfo in server["apps"]:
-			if "domain" in appInfo:
-				domainSet.add(appInfo["domain"])
+			if "domains" in appInfo:
+				for domain in appInfo["domains"]:
+					domainSet.add(domain)
 	
 	if "redirects" in server:
 		for redirect in server["redirects"]:

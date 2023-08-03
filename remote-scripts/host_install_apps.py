@@ -55,7 +55,7 @@ for deploymentName in os.listdir(constants.HOSTSERVER_APPS_DIR):
 			allApps.append({
 				"appName" : appName,
 				"deploymentName" : deploymentName,
-				"domain" : appMeta.get("domain", None),
+				"domains" : appMeta.get("domains", None),
 				"webPath" : appMeta.get("webPath", "/"),
 				"instancesPerCPU" : appMeta.get("instancesPerCPU", 0),
 				"isWebApp" : appMeta["isWebApp"],
@@ -71,10 +71,11 @@ for deploymentName in os.listdir(constants.HOSTSERVER_APPS_DIR):
 domainAndWebPathSet = set()
 
 for appInfo in allApps:
-	if appInfo["domain"]:
-		hash = str(appInfo["domain"]) + appInfo["webPath"]
-		assert hash not in domainAndWebPathSet, ("Same domain and webPath in more than one app: " + appInfo["appName"])
-		domainAndWebPathSet.add(hash)
+	if appInfo["domains"]:
+		for domain in appInfo["domains"]:
+			hash = str(domain) + appInfo["webPath"]
+			assert hash not in domainAndWebPathSet, ("Same domain and webPath in more than one app: " + appInfo["appName"])
+			domainAndWebPathSet.add(hash)
 
 # We increment the start port by 1000 each time, just in case some old processes were
 # hanging on to ports for a while when shutting down.
@@ -143,13 +144,14 @@ for runtimeName in usedRuntimes:
 thingsByDomain = {}
 
 for appInfo in allApps:
-	domain = appInfo["domain"]
+	domains = appInfo["domains"]
 
-	if domain:
-		if domain not in thingsByDomain:
-			thingsByDomain[domain] = {"apps" : [], "redirects" : []}
-		
-		thingsByDomain[domain]["apps"].append(appInfo)
+	if domains:
+		for domain in domains:
+			if domain not in thingsByDomain:
+				thingsByDomain[domain] = {"apps" : [], "redirects" : []}
+			
+			thingsByDomain[domain]["apps"].append(appInfo)
 
 for redirectInfo in allRedirects:
 	domain = redirectInfo["domain"]
