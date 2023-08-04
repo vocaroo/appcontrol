@@ -370,7 +370,8 @@ A server IP address or hostname may be used as a property of the deployment bloc
 | --- | --- |
 | app | App name; the name of the folder containing the app to be released and deployed. |
 | domain | Domain name for the app. A server app with no domain name will have no routing and will be a server daemon that is not accessible to the public. |
-| webPath | Path on that domain to serve the app from. Multiple apps can be served from a single domain using different paths. Defaults to the root "/". |
+| domains | Alternatively, a list of domain names can be used, if the same app is to be served from multiple domains. |
+| webPath | Path on the domain to serve the app from. Multiple apps can be served from a single domain using different paths. Defaults to the root "/". |
 | instancesPerCPU | For server apps, the number of instances to start per CPU. For only a single instance per server, set to zero or omit (the default). |
 | dataGroup | Apps of a deployment within the same named datagroup will have the same user on the server and will have access to the same data and log directories. |
 | env | Any more env vars, this is the most specific and will take precedence over any env vars specified elsewhere. |
