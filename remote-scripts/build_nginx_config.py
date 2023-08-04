@@ -1,6 +1,6 @@
 from host_utils import fromTemplate, getAppInstalledPath, getCertPrivkeyPath, getCertFullchainPath
 
-def addAppLocationBlock(appInfo, confUpstreamBlocks, confLocationBlocks, newInstallDir):
+def addAppLocationBlock(appInfo, upstreamBlockNames, confUpstreamBlocks, confLocationBlocks, newInstallDir):
 	if appInfo["isWebApp"]:
 		# For other than the default, root, web app, add a location block
 		confLocationBlocks.append(fromTemplate("nginx-webapp-location.template", {
@@ -9,17 +9,23 @@ def addAppLocationBlock(appInfo, confUpstreamBlocks, confLocationBlocks, newInst
 		}))
 	else: # Server app
 		# Create an upstream block
-
 		upstreamName = appInfo["deploymentName"] + "-" + appInfo["appName"]
-		# Default to just one instance in total if "instancesPerCPU" is set to zero (the default)
-		# Otherwise... an instance per CPU!
-		instanceCount = appInfo["instanceCount"]
 
-		confUpstreamBlocks.append(fromTemplate("nginx-serverapp-upstream.template", {
-			"###UPSTREAM_NAME###" : upstreamName,
-			"###SERVERS###" : "\n"
-				.join(["server localhost:" + str(appInfo["portRangeStart"] + i) + " max_fails=0;" for i in range(0, instanceCount)])
-		}))
+		# ensure only one upstream block for this given deployment/app combination
+		# this is required as an app location block can appear in multiple domain names on the same server
+		# but we must only have one upstream for all of these
+		if upstreamName not in upstreamBlockNames:
+			upstreamBlockNames.add(upstreamName)
+			
+			# Default to just one instance in total if "instancesPerCPU" is set to zero (the default)
+			# Otherwise... an instance per CPU!
+			instanceCount = appInfo["instanceCount"]
+
+			confUpstreamBlocks.append(fromTemplate("nginx-serverapp-upstream.template", {
+				"###UPSTREAM_NAME###" : upstreamName,
+				"###SERVERS###" : "\n"
+					.join(["server localhost:" + str(appInfo["portRangeStart"] + i) + " max_fails=0;" for i in range(0, instanceCount)])
+			}))
 
 		# Create a location block
 		confLocationBlocks.append(fromTemplate("nginx-serverapp-location.template", {
@@ -45,6 +51,7 @@ def addRedirectLocationBlock(redirectInfo, confLocationBlocks):
 def buildNginxConf(newInstallDir, thingsByDomain, letsencryptThumbprint):
 	confServerBlocks = []
 	confUpstreamBlocks = []
+	upstreamBlockNames = set()
 
 	# Add a server block for each domain name
 	# Each may in turn contain several apps
@@ -61,14 +68,14 @@ def buildNginxConf(newInstallDir, thingsByDomain, letsencryptThumbprint):
 			if appInfo["webPath"] == "/":
 				rootApp = appInfo
 			else:
-				addAppLocationBlock(appInfo, confUpstreamBlocks, confLocationBlocks, newInstallDir)
+				addAppLocationBlock(appInfo, upstreamBlockNames, confUpstreamBlocks, confLocationBlocks, newInstallDir)
 		
 		for redirectInfo in redirectInfos:
 			addRedirectLocationBlock(redirectInfo, confLocationBlocks)
 		
 		# Add the root app last, so its regex location is matched last if other matches fail
 		if rootApp:
-			addAppLocationBlock(rootApp, confUpstreamBlocks, confLocationBlocks, newInstallDir)
+			addAppLocationBlock(rootApp, upstreamBlockNames, confUpstreamBlocks, confLocationBlocks, newInstallDir)
 			
 			# Only add web root for a web app
 			if appInfo["isWebApp"]:
