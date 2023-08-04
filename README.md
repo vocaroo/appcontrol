@@ -353,7 +353,8 @@ A deployment block can contain the following properties:
 | letsencrypt | A letsencrypt block here will override any specified at the top level. |
 | masterServer | A masterServer specified here will override any specified at the top level. |
 | env* | Any of the env* properties can be here. Please see the environmental variables section. |
-| servers | This object will contain all the servers in this deployment, as key value pairs where the key is the IP address or hostname, and the value is a server block. |
+| servers | This object will contain all the servers in this deployment, as key value pairs where the key is an IP address or hostname, and the value is a server block object. Alternatively, the value can be the name of a serverTemplate. |
+| serverTemplates | Useful if you have multiple servers with the exact same apps and domains. You can define server blocks here as key-value pairs where the key is a custom template name. These template names can then be used in the servers object instead of a server block. |
 
 ##### Server block
 
