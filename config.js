@@ -103,11 +103,24 @@ function validatedConfig() {
 			const deployBlock = config.deployments[target];
 			
 			assert(deployBlock.servers, `No servers in target ${target}`);
+			
+			let serverTemplates = deployBlock.serverTemplates || {};
 
 			// Validation of all servers in a target
 			// Check for duplicate app names within a server
 			// Set some defaults
-			for (let server of Object.values(deployBlock.servers)) {
+			for (let [serverKey, server] of Object.entries(deployBlock.servers)) {
+				
+				// If the server is a string and not an object, then it is the name of a server template
+				// And so we replace it with the contents of the template.
+				if (typeof server == "string") {
+					assert(serverTemplates[server], `Server template "${server}" not found.`);
+					
+					// must be a deep clone!!
+					deployBlock.servers[serverKey] = structuredClone(serverTemplates[server]);
+					server = deployBlock.servers[serverKey];
+				}
+				
 				// Check for duplicate app names within server block
 				let appNameSet = new Set();
 
