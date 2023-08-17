@@ -70,7 +70,7 @@ There are three main configuration files:
 
 - `appcontrol.json` in your project's directory. This stores information regarding what apps in your project will be deployed to what servers for what named deployments, and other per project config including any environmental variables for your app's different deployments. Also referred to as the "deploy config".
 - `app.json` in an app's directory. The presence of an app.json file indicates that this folder contains an app that should be released and deployed via AppControl. The app.json can contain some configuration specific to that app, such as a build command.
-- `~/.appcontrol` in your home directory. This contains the definitions of all servers you add to appcontrol via `appcontrol addserver` (IP addresses, fingerprints), plus it may contain some global config which you want to apply to all your projects.
+- `~/.appcontrol.json` in your home directory. This contains the definitions of all servers you add to appcontrol via `appcontrol addserver` (IP addresses, fingerprints), plus it may contain some global config which you want to apply to all your projects.
 
 ### Environmental variables
 
