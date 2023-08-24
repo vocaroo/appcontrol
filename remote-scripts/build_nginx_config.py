@@ -31,12 +31,16 @@ def addAppLocationBlock(appInfo, upstreamBlockNames, confUpstreamBlocks, confLoc
 		# Have to use a different template for root and non root webPath due to nginx quirks
 		
 		webPath = appInfo["webPath"].strip("/") # conf already has slashes
-		templatePath = "nginx-serverapp-location.template" if len(webPath) > 0 else "nginx-serverapp-root-location.template"
 		
-		confLocationBlocks.append(fromTemplate(templatePath, {
-			"###WEBPATH###" : webPath,
-			"###UPSTREAM_NAME###" : upstreamName
-		}))
+		if len(webPath) > 0: # Not root
+			confLocationBlocks.append(fromTemplate("nginx-serverapp-location.template", {
+				"###WEBPATH###" : webPath,
+				"###UPSTREAM_NAME###" : upstreamName
+			}))
+		else:
+			confLocationBlocks.append(fromTemplate("nginx-serverapp-root-location.template", {
+				"###UPSTREAM_NAME###" : upstreamName
+			}))
 
 
 def addRedirectLocationBlock(redirectInfo, confLocationBlocks):
