@@ -1,4 +1,4 @@
-location ^~ /###WEBPATH###/ {
+location /###WEBPATH###/ {
 	proxy_pass http://###UPSTREAM_NAME###/;
 	proxy_http_version 1.1;
 	proxy_set_header Upgrade $http_upgrade;
