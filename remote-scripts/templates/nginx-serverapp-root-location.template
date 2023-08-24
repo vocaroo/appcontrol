@@ -1,0 +1,9 @@
+location ^~ /###WEBPATH### {
+	proxy_pass http://###UPSTREAM_NAME###/;
+	proxy_http_version 1.1;
+	proxy_set_header Upgrade $http_upgrade;
+	proxy_set_header Connection 'upgrade';
+	proxy_set_header Host $host;
+	proxy_cache_bypass $http_upgrade;
+	proxy_intercept_errors on;
+}

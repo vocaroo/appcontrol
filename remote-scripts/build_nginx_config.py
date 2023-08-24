@@ -28,8 +28,13 @@ def addAppLocationBlock(appInfo, upstreamBlockNames, confUpstreamBlocks, confLoc
 			}))
 
 		# Create a location block
-		confLocationBlocks.append(fromTemplate("nginx-serverapp-location.template", {
-			"###WEBPATH###" : appInfo["webPath"].strip("/"), # conf already has slashes
+		# Have to use a different template for root and non root webPath due to nginx quirks
+		
+		webPath = appInfo["webPath"].strip("/") # conf already has slashes
+		templatePath = "nginx-serverapp-location.template" if len(webPath) > 0 else "nginx-serverapp-root-location.template"
+		
+		confLocationBlocks.append(fromTemplate(templatePath, {
+			"###WEBPATH###" : webPath,
 			"###UPSTREAM_NAME###" : upstreamName
 		}))
 
