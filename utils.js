@@ -68,10 +68,18 @@ function serverToStr(server) {
 function hostFromServer(server) {
 	assert(server.ipv6 || server.ipv4);
 	
-	if (server.ipv6) {
-		return server.ipv6;
+	if (process.env.APPCONTROL_FORCE_IPV4) {
+		if (server.ipv4) {
+			return server.ipv4;
+		} else {
+			return server.ipv6;
+		}
 	} else {
-		return server.ipv4;
+		if (server.ipv6) {
+			return server.ipv6;
+		} else {
+			return server.ipv4;
+		}
 	}
 }
 
