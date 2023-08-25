@@ -58,6 +58,14 @@ AppControl is very much a work in progress. There may be breaking changes in the
 | `appcontrol quickrelease <target>` | Release and deploy in one step |
 | `appcontrol get-fingerprint <hostIP>` | Get the ed25519 fingerprint of the specified host, only useful if  you manually edit the server definitions |
 
+# Command environmental variables
+
+Environmental variables that affect the operation of AppControl commands.
+
+| Environmental variable | description |
+| --- | --- |
+| APPCONTROL_FORCE_IPV4 | AppControl defaults to deploying over IPv6. If this env var is present when running any appcontrol command, actions will occur over IPv4 even if an IPv6 address is available. Useful if deploying from a network that supports only IPv4. |
+
 # Configuration files and project structure
 
 ## Project structure
