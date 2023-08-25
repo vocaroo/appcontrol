@@ -47,7 +47,7 @@ def localRsync(sourceDir, destDir, extraArgs = []):
 		+ [sourceDir, destDir]
 	)
 
-async def rsync(host, keyPath, sourceDir, destDir, extraArgs = []):
+async def _rsync_no_retry(host, keyPath, sourceDir, destDir, extraArgs = []):
 	remoteShell = "ssh -oBatchMode=yes -i " + keyPath
 	dest = "root@[" + host + "]:" + destDir;
 	
@@ -68,6 +68,17 @@ async def rsync(host, keyPath, sourceDir, destDir, extraArgs = []):
 			raise HostVerificationError(host)
 		else:
 			raise error
+
+# rsync with continuous retry for any CalledProcessError
+async def rsync(host, keyPath, sourceDir, destDir, extraArgs = []):
+	while True:
+		try:
+			await _rsync_no_retry(host, keyPath, sourceDir, destDir, extraArgs)
+			break
+		except CalledProcessError as error:
+			print(error)
+			print(f"Rsync from master server to {host} failed with code {error.returncode}, will retry...");
+			await asyncio.sleep(5)
 
 # Simple on disk key-value store
 class ConfigStore:

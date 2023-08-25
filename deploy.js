@@ -66,7 +66,7 @@ function rsync(host, sourceDir, destDir, extraArgs = []) {
 
 				setTimeout(() => {
 					resolve(rsync(host, sourceDir, destDir, extraArgs));
-				}, 1000);
+				}, 5000);
 			}
 		}
 
@@ -100,10 +100,9 @@ function runRemoteScript(host, scriptName) {
 		});
 
 		ssh.exec("python3 -B " + REMOTE_SCRIPT_DIR + "/" + path.basename(scriptName), {
+			out : text => printStdLines(text, "remote says: "),
+			err : text => printStdLines(text, "remote says: "),
 			exit : (code, stdout, stderr) => {
-				printStdLines(stdout, "remote says: ");
-				printStdLines(stderr, "remote says: ");
-
 				if (code == 0) {
 					console.log(`Remote script ${scriptName} on ${host} was successful`);
 					resolve();
@@ -121,7 +120,7 @@ function runRemoteScript(host, scriptName) {
 
 				setTimeout(() => {
 					resolve(runRemoteScript(host, scriptName));
-				}, 1000);
+				}, 5000);
 			}
 		});
 	});
