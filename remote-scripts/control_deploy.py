@@ -25,9 +25,9 @@ assert(len(deploymentName) > 0)
 projectName, deployTarget = getProjectNameAndTarget(deploymentName)
 
 print("Deploying from control server...")
-print("full deployment name:", deploymentName)
-print("projectName:", projectName)
-print("deployTarget:", deployTarget)
+print(f"Deployment name: {deploymentName}")
+print(f"Project name: {projectName}")
+print(f"Deploy target: {deployTarget}")
 
 # Update letsencrypt account email if it has changed
 if email != localConf.get("email"):
@@ -108,7 +108,7 @@ elif "letsencrypt" in deployConfig: # use the global config if present
 servers = serversFromDeployConfig(deploymentName, deployConfig)
 hosts = hostsFromServers(servers)
 
-print("Deploying to hosts", hosts)
+print(f"Deploying to hosts: {hosts}")
 
 # Write correct host fingerprints to known_hosts, for *all* deployments on this control server
 writeKnownHosts()
@@ -118,7 +118,7 @@ writeKnownHosts()
 
 domainSet = getAllDomains(servers)
 
-print("All domains in this deployment:", str(domainSet))
+print(f"All domains in this deployment: {domainSet}")
 
 def issueCertsDNS(domainSet):
 	dnsHookName = letsencryptConfig["dns_hook"]
@@ -195,9 +195,9 @@ async def initHosts():
 	await asyncio.gather(*[
 		rsync(host, getDeploymentKey(deploymentName), constants.CONTROLSERVER_SCRIPTS_DIR + "/", constants.HOSTSERVER_SCRIPTS_DIR) for host in hosts
 	])
-
+	
 	# Run server-init.py on each. Creates some necessary dirs and installs some stuff if not already installed
-	runOnAllHosts(hosts, deploymentName, "host_init.py " + deploymentName + " " + localConf.get("letsencryptThumbprint"))
+	await runOnAllHosts(hosts, deploymentName, "host_init.py " + deploymentName + " " + localConf.get("letsencryptThumbprint"))
 
 def fileInjectEnv(dirPath, testRegex, env):
 	for dirent in os.scandir(dirPath):
@@ -342,6 +342,6 @@ async def deploy():
 		tempDir.cleanup()
 
 	# Install all apps
-	runOnAllHosts(hosts, deploymentName, "host_install_apps.py " + localConf.get("letsencryptThumbprint"))
+	await runOnAllHosts(hosts, deploymentName, "host_install_apps.py " + localConf.get("letsencryptThumbprint"))
 
 asyncio.run(main())

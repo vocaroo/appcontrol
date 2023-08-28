@@ -99,7 +99,7 @@ function runRemoteScript(host, scriptName) {
 			key : mainSshPrivateKey
 		});
 
-		ssh.exec("python3 -B " + REMOTE_SCRIPT_DIR + "/" + path.basename(scriptName), {
+		ssh.exec(`python3 -B -u ${REMOTE_SCRIPT_DIR}/${path.basename(scriptName)}`, {
 			out : text => printStdLines(text, "remote says: "),
 			err : text => printStdLines(text, "remote says: "),
 			exit : (code, stdout, stderr) => {

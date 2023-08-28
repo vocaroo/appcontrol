@@ -36,14 +36,15 @@ async def propagate():
 		
 		await asyncio.gather(*rsyncTasks)
 
-asyncio.run(propagate())
+async def reload_nginx():
+	# Reload nginx config on each host so new cert is seen
+	for deploymentName in deployments:
+		print("Reloading nginx across deployment " + deploymentName)
+		servers = readServers(deploymentName)
+		hosts = hostsFromServers(servers)
+		
+		if not await runCommandOnAllHosts(hosts, deploymentName, "systemctl --no-block reload nginx"):
+			print("Error, one or more nginx reload commands failed.")
 
-# Reload nginx config on each host so new cert is seen
-# This is blocking per deployment, could be improved
-for deploymentName in deployments:
-	print("Reloading nginx across deployment " + deploymentName)
-	servers = readServers(deploymentName)
-	hosts = hostsFromServers(servers)
-	
-	if not runCommandOnAllHosts(hosts, deploymentName, "systemctl --no-block reload nginx"):
-		print("Error, one or more reload commands failed.")
+asyncio.run(propagate())
+asyncio.run(reload_nginx())

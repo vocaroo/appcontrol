@@ -17,7 +17,7 @@ print("Initialising control server...")
 # Initial setup and install of some things on this master server
 runCommand(["apt", "update"])
 runCommand(["apt", "install", "-y", "python3-pip"])
-runCommand([sys.executable, "-m", "pip", "install", "parallel-ssh"])
+runCommand([sys.executable, "-m", "pip", "install", "asyncssh"])
 
 # Write cron job to propagate certs
 def writeCertPropagationCron():

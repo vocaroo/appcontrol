@@ -1,7 +1,7 @@
-import json, os, sys
+import json, os, sys, asyncio
 import constants
+import asyncssh
 from utils import getProjectNameAndTarget
-from pssh.clients import ParallelSSHClient
 
 def getCertPrivkeyPath(domain):
 	return constants.CONTROLSERVER_CERTS_DIR + "/" + domain + ".key.pem"
@@ -106,32 +106,43 @@ def writeKnownHosts():
 			if "ipv6" in server:
 				fp.write(server["ipv6"] + " ssh-ed25519 " + server["fingerprint"] + "\n")
 
-def runCommandOnAllHosts(hosts, deploymentName, commandStr):
-	# We might want timeout and retry in future, but let's see if it's actually necessary.
-	# Since these connections are between remote servers it should be rare.
-	client = ParallelSSHClient(hosts, pkey = constants.CONTROLSERVER_DEPLOYMENTS_DIR + "/" + deploymentName + "/control-key")
-	outputs = client.run_command(commandStr)
-
-	client.join()
-
-	failed = False
-
-	for output in outputs:
-		if output.exit_code != 0:
-			print("Server command failed.")
-			print("Command exit code: " + str(output.exit_code))
-			print("Command stdout: " + "".join(output.stdout))
-			print("Command stderr: " + "".join(output.stderr))
-			failed = True
-
-	if failed:
-		print("One or more server commands failed.")
-		return False
+async def _runCommandOnHostNoRetry(host, deploymentName, commandStr):
+	keyPath = constants.CONTROLSERVER_DEPLOYMENTS_DIR + "/" + deploymentName + "/control-key"
 	
-	return True
+	async with asyncssh.connect(host, client_keys = [keyPath]) as conn:
+		result = await conn.run(commandStr)
+		
+		if result.returncode != 0:
+			print("Server command failed.")
+			print("Command exit code: " + str(result.returncode))
+			print("Command stdout: " + "".join(result.stdout))
+			print("Command stderr: " + "".join(result.stderr))
+			return False
+		
+		return True
+
+async def runCommandOnHost(host, deploymentName, commandStr):
+	while True:
+		try:
+			return await _runCommandOnHostNoRetry(host, deploymentName, commandStr)
+		except Exception as error:
+			print(error)
+			print(commandStr)
+			print(f"Master server failed to run command on {host}, will retry...");
+			await asyncio.sleep(5)
+
+async def runCommandOnAllHosts(hosts, deploymentName, commandStr):
+	results = await asyncio.gather(*[runCommandOnHost(host, deploymentName, commandStr) for host in hosts])
+	allSucceeded = all(results)
+	
+	if not allSucceeded:
+		print("One or more server commands failed.")
+	
+	# Return true if ALL commands succeeded, false if any failed
+	return allSucceeded
 
 # Run a script across *all* hosts
 # Also exits if anything fails, this is currently assumed to only be used by deploy script
-def runOnAllHosts(hosts, deploymentName, scriptName):
-	if not runCommandOnAllHosts(hosts, deploymentName, "python3 -B " + constants.HOSTSERVER_SCRIPTS_DIR + "/" + scriptName):
+async def runOnAllHosts(hosts, deploymentName, scriptName):
+	if not await runCommandOnAllHosts(hosts, deploymentName, f"python3 -B -u {constants.HOSTSERVER_SCRIPTS_DIR}/{scriptName}"):
 		sys.exit(constants.REMOTE_EXIT_CODE_HOST_COMMAND_FAILED)
