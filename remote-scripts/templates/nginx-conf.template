@@ -29,6 +29,10 @@ http {
 	ssl_protocols TLSv1 TLSv1.1 TLSv1.2 TLSv1.3; # Dropping SSLv3, ref: POODLE
 	ssl_prefer_server_ciphers on;
 	
+	limit_req_zone $binary_remote_addr zone=basic_rate_limit_zone:10m rate=10r/s;
+	limit_req zone=basic_rate_limit_zone burst=10 nodelay;
+	limit_req_status 429;
+	
 	map $remote_addr $ip_anonym1 {
 		default 0.0.0;
 		"~(?P<ip>(\d+)\.(\d+)\.(\d+))\.\d+" $ip;
