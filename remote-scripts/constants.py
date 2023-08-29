@@ -33,4 +33,5 @@ NGINX_CONF_PATH = "/etc/nginx/nginx.conf"
 NGINX_CONF_MAGIC = "---APPCONTROL_MAGIC_IDENT---"
 LOCAL_CONFIG_FILE = "appcontrol.json" # Ideally this should be copied acrosss from constants.js! (is repeated from there)
 ACME_SH_PATH = "/root/.acme.sh/acme.sh"
+SSHD_CONFIG_PATH = "/etc/ssh/sshd_config.d/appcontrol.conf"
 HOST_VERIFICATION_MATCH_STR = "Host key verification failed"

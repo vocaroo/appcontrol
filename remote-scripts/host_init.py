@@ -6,6 +6,8 @@ from host_utils import fromTemplate
 
 print("Will init this server!")
 
+import both_init
+
 deploymentName = sys.argv[1]
 letsencryptThumbprint = sys.argv[2]
 assert(len(deploymentName) > 0)
