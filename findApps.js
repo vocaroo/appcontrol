@@ -2,6 +2,7 @@ const fs = require("fs-extra");
 const path = require("path");
 const assert = require("assert");
 const constants = require("./constants.js");
+const config = require("./config.js");
 const {appNameFromDir} = require("./utils.js");
 
 const EXCLUDED_DIRS = new Set(["node_modules"]);
@@ -51,12 +52,16 @@ module.exports = function findApps(startPath = "./") {
 				detector : detectedAs
 			};
 			
-			apps.push(appInfo);
-			
-			//need to ensure that a name doesn't appear twice, since spaces will be converted to hyphens, this is possible
-			// e.g. "my app" and "my-app" will clash.
-			assert(!appNameSet.has(appInfo.name), `Two apps with the same name detected (${appInfo.name})`);
-			appNameSet.add(appInfo.name);
+			if (config.excludeApps.includes(dir) || config.excludeApps.includes(appInfo.name)) {
+				console.log(`Excluding app ${appInfo.name}`);
+			} else {
+				apps.push(appInfo);
+				
+				//need to ensure that a name doesn't appear twice, since spaces will be converted to hyphens, this is possible
+				// e.g. "my app" and "my-app" will clash.
+				assert(!appNameSet.has(appInfo.name), `Two apps with the same name detected (${appInfo.name})`);
+				appNameSet.add(appInfo.name);
+			}
 		} else {
 			// Recurse
 			apps = apps.concat(findApps(dir));

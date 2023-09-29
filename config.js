@@ -93,6 +93,7 @@ function validatedConfig() {
 	validated.releaseDir = getReleaseDir();
 	validated.sshKey = getSSHKeyPath();
 	validated.masterServer = getMasterServer() || undefined;
+	validated.excludeApps = Array.isArray(config.excludeApps) ? config.excludeApps : [];
 	
 	if (config.deployments) {
 		validated.deployments = {};

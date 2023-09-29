@@ -336,11 +336,12 @@ This uses the Letsencrypt DNS verification method along with an alias domain, an
 | property | description |
 | --- | --- |
 | name | Optional. The project's name. If omitted, the name of the project folder will be used |
-| releaseDIr | Optional. By default, releases will be stored in `.appcontrol/releases` within your project. |
+| releaseDir | Optional. By default, releases will be stored in `.appcontrol/releases` within your project. |
 | letsencrypt | For most cases, this should be omitted, and AppControl will get certificates using the Letsencrypt HTTP challenge method. This does require that your DNS records are already set up and propagated and pointing your domains to your appcontrol servers. If that's not the case, you can use the DNS API. |
 | env* | Any of the env* properties can be here. Please see the environmental variables section. |
 | masterServer | A server to be used as the master server, for all deployments. Can be specified by IP address or hostname (as passed to `appcontrol addserver`). The master server receives the released apps and in turn propagates them to other host servers. It also handles SSL certificate renewal and other things. This can be omitted, in which case the first server in a deployment block will be used as the master. If you have only one server, that will be both the master and the host. |
 | deployments | The deployments of this project. A deployment is a named collection of servers and the apps that will be deployed to them. For example, staging or production. There can be any amount of named child objects for however many deployments you have. |
+| excludeApps | Optional array of named app directories to be excluded from all releases. Mostly useful in case of other software that uses an app.json file but you don't want it released by appcontrol. |
 
 ##### Letsencrypt block
 
