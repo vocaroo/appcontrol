@@ -3,7 +3,7 @@ from datetime import datetime
 import constants
 from control_utils import (
 	readServers, getCertPrivkeyPath, getCertFullchainPath, getDomainsInServer, runCommandOnAllHosts,
-	getAllDeployments, hostsFromServers
+	getAllDeployments, hostsFromServers, hostFromServer
 )
 from utils import rsync, getDeploymentKey
 
@@ -20,7 +20,7 @@ async def propagate():
 		rsyncTasks = []
 		
 		for server in servers:
-			host = server["ip"]
+			host = hostFromServer(server)
 			
 			for domainName in getDomainsInServer(server):
 				print("Propagating " + domainName + " keys to host " + host)
